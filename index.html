@@ -363,6 +363,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     S.synced=false; hideAuth(); S.mode='db'; S.user=u.email; S.me={email:String(u.email).toLowerCase(),name:userName(u.email),pid:null}; S.ready=false; render();
     const col=db.collection('hogar');
     store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete(),
+      putCfg:v=>col.doc('_cfg').set(v),
       putMany:async recs=>{ for(let i=0;i<recs.length;i+=400){ const b=db.batch(); recs.slice(i,i+400).forEach(r=>b.set(col.doc(r.id),r)); await b.commit(); } } };
     if(unsub) unsub();
     unsub=col.onSnapshot(snap=>{
@@ -375,7 +376,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       });
       P.sort((a,b)=>(a.ts||0)-(b.ts||0));
       if(!(snap.metadata&&snap.metadata.fromCache)) S.synced=true;
-      S.persons=P; S.entries=E; S.fixed=F; S.ready=true; ensureMe().then(()=>{ render(); ensureAuto(); });
+      const cfgDoc=snap.docs.find(d=>d.id==='_cfg'); if(cfgDoc && (cfgDoc.data()||{}).fixedSeeded) S.cfgSeeded=true;
+      S.persons=P; S.entries=E; S.fixed=F; S.ready=true; ensureMe().then(()=>{ render(); return ensureDefaults(); });
     },e=>{ S.ready=true; render(); toast(e&&e.code==='permission-denied'?'Este correo no tiene acceso a los datos del hogar':'No se pudo conectar con la base de datos'); });
   }
   async function initStore(){
@@ -427,7 +429,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   async function applyFixedChange(f){
     const cur=today();
     const list=S.entries.filter(e=>e.fixedId===f.id && !e.edited && !e.deleted && e.month>=cur);
-    for(const e of list) await store.put(Object.assign({},e,{name:f.name,amount:f.amount,cat:f.cat}));
+    for(const e of list) await store.put(Object.assign({},e,{name:f.name,cat:f.cat}));
   }
 
   /* ---------- piezas de vista ---------- */
@@ -502,6 +504,44 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
         closeSheet(); render(); toast(recs.length+' gastos agregados');
       }catch(err){ $('#bkErr').textContent='No se pudo agregar. Intenta de nuevo.'; }
     });
+  }
+  /* completar un gasto fijo del mes (aparece en $0 por defecto) */
+  function openFill(fid){
+    const f=S.fixed.find(x=>x.id===fid); if(!f) return;
+    lastFocus=document.activeElement;
+    sheetBase(`<h3 id="sTitle">${esc(f.name)} · ${esc(monthName(S.month))}</h3>
+      <div class="field"><label for="lAmt">Monto (CLP)</label><input id="lAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="${f.amount>0?Number(f.amount).toLocaleString('es-CL'):'0'}"></div>
+      <p class="note">${esc(f.cat)}</p><p class="err" id="lErr" role="alert"></p>
+      <div class="actions"><button type="button" class="btn" id="lSave">Guardar</button><button type="button" class="btn ghost" id="lSkip">No aplica este mes</button><button type="button" class="btn ghost" id="lEdit">Editar o quitar este gasto fijo</button><button type="button" class="btn ghost" id="lCancel">Cancelar</button></div>`);
+    const amt=$('#lAmt'); amt.addEventListener('input',()=>{ amt.value=fmtInput(amt.value); }); amt.focus();
+    $('#lCancel').addEventListener('click',closeSheet);
+    $('#lEdit').addEventListener('click',()=>{ closeSheet(); openFixed(fid); });
+    const base=()=>({id:fxId(fid,S.month),kind:'egreso',month:S.month,cat:f.cat,name:f.name,fixedId:fid,ts:Date.now()});
+    $('#lSave').addEventListener('click',async()=>{
+      const v=num(amt.value);
+      if(v<1){ $('#lErr').textContent='Escribe el monto, o usa "No aplica este mes".'; amt.focus(); return; }
+      try{ await store.put(stamp(Object.assign(base(),{amount:v}),true)); closeSheet(); render(); toast('Guardado'); }
+      catch(e){ $('#lErr').textContent='No se pudo guardar. Intenta de nuevo.'; }
+    });
+    $('#lSkip').addEventListener('click',async()=>{
+      try{ await store.put(Object.assign(base(),{amount:0,deleted:true})); closeSheet(); render(); }
+      catch(e){ $('#lErr').textContent='No se pudo guardar. Intenta de nuevo.'; }
+    });
+  }
+  /* gastos fijos de partida (una sola vez); después los cambias o quitas a gusto */
+  const DEFAULT_FIJOS=[['Arriendo','arriendo'],['Luz','luz'],['Agua','agua'],['Gastos comunes','gastos_comunes']];
+  async function ensureDefaults(){
+    if(!S.synced || S.cfgSeeded || !store || !store.putCfg) return;
+    S.cfgSeeded=true;
+    try{
+      const norm2=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+      for(const d of DEFAULT_FIJOS){
+        const dn=norm2(d[0]);
+        if(S.fixed.some(f=>{ const n=norm2(f.name); return n===dn || (dn==='gastos comunes' && (n==='gasto común'||n==='gasto comun'||n==='gastos comun')); })) continue;
+        await store.put({id:'f_def_'+d[1],name:d[0],amount:0,cat:'Vivienda y cuentas',from:'2026-01',ts:Date.now()});
+      }
+      await store.putCfg({fixedSeeded:true});
+    }catch(e){ S.cfgSeeded=false; }
   }
   function copyBanner(){
     if(isDemo()) return '';
@@ -653,18 +693,20 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   function viewEgresos(){
     const L=expenses(S.month), T=byType(L);
     let h=demoBanner();
-    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(L))}</p>`+(isDemo()||!prevEgresos().length?'':`<button type="button" class="btn ghost" data-action="bring" style="margin-top:10px">Traer gastos de ${esc(monthName(shiftMonth(S.month,-1)))}</button>`)+`</section>`;
+    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(L))}</p>`+`</section>`;
     h+='<div class="segs" role="group" aria-label="Tipo de egreso">'+[['fijos','Fijos'],['variables','Variables']].map(p=>`<button type="button" data-action="eg" data-k="${p[0]}" aria-pressed="${S.eg===p[0]}">${p[1]}<small>${money(sum(T[p[0]]))}</small></button>`).join('')+'</div>';
     h+= S.eg==='fijos'?secFijos(T.fijos): secVariables(T.variables);
     return h;
   }
   function secFijos(list){
     const demo=isDemo(), F=fixedList(), cur=today();
-    let h=fixedBanner()+'<section><p class="note"><small>v3 · plantillas de gasto fijo guardadas: '+F.length+' · pendientes este mes: '+pendingFixed().length+'</small><br>Al empezar un mes te pregunto si quieres repetir los del mes pasado. Toca uno para cambiar su monto solo en '+esc(monthName(S.month))+'.</p></section>';
+    let h='<section><p class="note">Estos son tus gastos fijos de '+esc(monthName(S.month))+'. Los de <b>Por completar</b> aparecen cada mes en $0: tócalos y escribe el monto.</p></section>';
+    const pend=demo?[]:F.filter(f=>(f.from||'0000-00')<=S.month && !S.entries.some(e=>e.fixedId===f.id && e.month===S.month));
+    if(pend.length){
+      h+='<section><p class="grp"><b>Por completar</b><span class="mono">'+pend.length+'</span></p><ul class="rows">'+pend.map(f=>`<li><button type="button" class="row" data-action="fill" data-fid="${esc(f.id)}"><span class="row-main"><b>${esc(f.name)}</b><small>${esc(f.cat)}${f.amount>0?' · Habitual '+money(f.amount):''}</small></span><span class="amt" style="opacity:.55">$0</span></button></li>`).join('')+'</ul></section>';
+    }
     if(!list.length){
-      h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses, como arriendo, luz o internet.</p></div>'
-        : ensuring ? '<p class="empty">Agregando los gastos fijos del mes…</p>'
-        : '<p class="empty">Sin gastos fijos en '+esc(monthLabel(S.month))+'.</p>';
+      h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses con "+ Gasto fijo".</p></div>' : '';
     } else {
       const habitual=id=>{ const f=F.find(x=>x.id===id); return f?f.amount:null; };
       h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(list))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
@@ -792,10 +834,10 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const root=sheetBase(`
       <h3 id="sTitle">${t?'Editar gasto fijo':'Nuevo gasto fijo'}</h3>
       <div class="field"><label for="xName">Descripción</label><input id="xName" type="text" list="xNames" maxlength="60" autocomplete="off" value="${esc(t?t.name:(preset&&preset.name)||'')}"><datalist id="xNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
-      <div class="field"><label for="xAmt">Monto mensual habitual (CLP)</label><input id="xAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="0" value="${t?Number(t.amount).toLocaleString('es-CL'):''}"></div>
+      <div class="field"><label for="xAmt">Monto habitual (opcional, solo de referencia)</label><input id="xAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="0" value="${t?Number(t.amount).toLocaleString('es-CL'):''}"></div>
       <div class="field"><label for="xCat">Categoría</label>${catSelect('xCat',cats,defCat)}</div>
       <div class="field" id="xNewWrap" hidden><label for="xNew">Nombre de la nueva categoría</label><input id="xNew" type="text" maxlength="40" autocomplete="off"></div>
-      <p class="note">${t?'El cambio aplica desde este mes en adelante, salvo en los meses donde ya ajustaste el monto a mano.':'Se agrega a Egresos de este mes y de cada mes siguiente. Si un mes cambia, lo ajustas desde Egresos.'}</p>
+      <p class="note">${t?'Cambia el nombre o la categoría. Los montos ya cargados no se tocan.':'Aparecerá en $0 como "Por completar" en este mes y en cada mes siguiente.'}</p>
       <p class="err" id="xErr" role="alert"></p>
       <div class="actions"><button type="button" class="btn" id="xSave">Guardar</button>${t?'<button type="button" class="btn danger" id="xDel">Eliminar</button>':''}<button type="button" class="btn ghost" id="xCancel">Cancelar</button></div>`);
     const amt=$('#xAmt'), err=$('#xErr');
@@ -806,14 +848,11 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       const name=$('#xName').value.trim(), amount=num(amt.value);
       const c=readCat('xCat','xNew',cats,err); if(c===null) return;
       if(!name){ err.textContent='Escribe una descripción.'; $('#xName').focus(); return; }
-      if(amount<1){ err.textContent='Ingresa un monto mayor a cero.'; amt.focus(); return; }
-      const rec=stamp(Object.assign({},t||{},{id:t?t.id:uid('f'),name,amount,cat:c,from:t?(t.from||today()):(S.month>today()?S.month:today()),ts:t?(t.ts||Date.now()):Date.now()}),!t);
+      const rec=stamp(Object.assign({},t||{},{id:t?t.id:uid('f'),name,amount,cat:c,from:t?(t.from||'2026-01'):S.month,ts:t?(t.ts||Date.now()):Date.now()}),!t);
       try{
         await store.put(rec);
         if(t) await applyFixedChange(rec);
-        closeSheet(); S.tab='egresos'; S.eg='fijos'; render(); toast(t?'Cambios guardados':'Gasto fijo agregado a este mes');
-        if(!t){ const m=S.month>today()?S.month:today(); const eid=fxId(rec.id,m);
-          if(!S.entries.some(x=>x.id===eid)) await store.put({id:eid,kind:'egreso',month:m,cat:rec.cat,name:rec.name,amount:rec.amount,fixedId:rec.id,by:rec.by,byName:rec.byName,at:rec.at||Date.now(),ts:Date.now()}); }
+        closeSheet(); S.tab='egresos'; S.eg='fijos'; render(); toast(t?'Cambios guardados':'Gasto fijo agregado: aparecerá cada mes por completar');
       }catch(e){ err.textContent='No se pudo guardar. Revisa tus permisos o intenta de nuevo.'; }
     });
     const del=$('#xDel');
@@ -890,7 +929,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
-    else if(a==='bring'){ openBring(); }
+    else if(a==='fill'){ openFill(el.dataset.fid); }
     else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
     else if(a==='repno'){ S.skipFx=S.month; render(); }
     else if(a==='copy'){ el.disabled=true; copyPrev(); }
