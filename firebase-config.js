@@ -9,3 +9,6 @@ window.FIREBASE_CONFIG = {
 };
 // Correos que pueden crear cuenta (la seguridad real está en firestore.rules)
 window.ALLOWED_EMAILS = ["richarddarocha21@gmail.com", "barbarapaez16@gmail.com"];
+
+// Cada correo queda asignado a su persona fija
+window.USERS = {"richarddarocha21@gmail.com":"Richard","barbarapaez16@gmail.com":"Bárbara"};
