@@ -809,11 +809,6 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(counted(list)))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
       h+=groupedByCat(list,e=>{ const hb=habitual(e.fixedId); return hb>0 && hb!==e.amount ? 'Habitual '+money(hb) : ''; });
     }
-    if(!demo){
-      const have=new Set(F.map(f=>f.name.toLowerCase()));
-      const sug=['Arriendo','Gasto común','Luz','Agua','Internet','Teléfono','Seguro'].filter(n=>!have.has(n.toLowerCase()));
-      if(sug.length) h+='<section><h2>Sugeridos</h2><div class="chips">'+sug.map(n=>`<button type="button" class="chip" data-action="suggest" data-name="${esc(n)}">+ ${esc(n)}</button>`).join('')+'</div></section>';
-    }
     return h;
   }
   function secVariables(list){
