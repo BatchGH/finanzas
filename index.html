@@ -461,6 +461,48 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     }catch(e){ toast('No se pudieron repetir los gastos fijos'); }
     render();
   }
+  /* traer a mano gastos del mes anterior */
+  function prevEgresos(){
+    const prev=shiftMonth(S.month,-1);
+    const here=S.entries.filter(e=>e.kind==='egreso'&&e.month===S.month&&!e.deleted);
+    return S.entries.filter(e=>e.kind==='egreso'&&e.month===prev&&!e.deleted&&e.amount>0)
+      .filter(e=>!here.some(h=>(e.fixedId&&h.fixedId===e.fixedId)||(h.name===e.name&&h.cat===e.cat)))
+      .sort((a,b)=>(b.fixedId?1:0)-(a.fixedId?1:0)||b.amount-a.amount);
+  }
+  function openBring(){
+    const L=prevEgresos(); if(!L.length){ toast('No hay gastos pendientes del mes anterior'); return; }
+    lastFocus=document.activeElement;
+    const prev=shiftMonth(S.month,-1), fijTab=S.eg==='fijos';
+    sheetBase(`<h3 id="sTitle">Traer de ${esc(monthName(prev))}</h3>
+      <p class="note">Marca los gastos que quieres agregar a ${esc(monthName(S.month))}.</p>
+      <ul class="rows">${L.map((e,i)=>`<li><label class="row" style="cursor:pointer"><input type="checkbox" class="bk" data-i="${i}" ${(e.fixedId||fijTab)?'checked':''} style="margin-right:10px"><span class="row-main"><b>${esc(e.name)}</b><small>${esc(e.cat)}${e.fixedId?' · fijo':''}</small></span><span class="amt">${money(e.amount)}</span></label></li>`).join('')}</ul>
+      <label class="note" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="bkFix" ${fijTab?'checked':''}> Guardar como gastos fijos (se repiten cada mes)</label>
+      <p class="err" id="bkErr" role="alert"></p>
+      <div class="actions"><button type="button" class="btn" id="bkGo">Agregar seleccionados</button><button type="button" class="btn ghost" id="bkCancel">Cancelar</button></div>`);
+    $('#bkCancel').addEventListener('click',closeSheet);
+    $('#bkGo').addEventListener('click',async()=>{
+      const sel=[...document.querySelectorAll('.bk')].filter(c=>c.checked).map(c=>L[+c.dataset.i]);
+      if(!sel.length){ $('#bkErr').textContent='Marca al menos uno.'; return; }
+      const asFix=$('#bkFix').checked, recs=[];
+      try{
+        for(const e of sel){
+          if(asFix || e.fixedId){
+            let fid=e.fixedId;
+            if(!fid || !S.fixed.some(f=>f.id===fid)){
+              fid=uid('f');
+              await store.put(stamp({id:fid,name:e.name,amount:e.amount,cat:e.cat,from:S.month,ts:Date.now()},true));
+            }
+            const f=S.fixed.find(x=>x.id===fid)||{};
+            recs.push(stamp({id:fxId(fid,S.month),kind:'egreso',month:S.month,cat:f.cat||e.cat,name:f.name||e.name,amount:f.amount||e.amount,fixedId:fid,ts:Date.now()},true));
+          } else {
+            recs.push(stamp({id:uid('g'),kind:'egreso',month:S.month,cat:e.cat,name:e.name,amount:e.amount,ts:Date.now()},true));
+          }
+        }
+        await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
+        closeSheet(); render(); toast(recs.length+' gastos agregados');
+      }catch(err){ $('#bkErr').textContent='No se pudo agregar. Intenta de nuevo.'; }
+    });
+  }
   function copyBanner(){
     if(isDemo()) return '';
     if(S.entries.some(e=>e.month===S.month && e.kind==='ingreso' && !e.deleted)) return '';
@@ -611,7 +653,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   function viewEgresos(){
     const L=expenses(S.month), T=byType(L);
     let h=demoBanner();
-    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(L))}</p></section>`;
+    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(L))}</p>`+(isDemo()||!prevEgresos().length?'':`<button type="button" class="btn ghost" data-action="bring" style="margin-top:10px">Traer gastos de ${esc(monthName(shiftMonth(S.month,-1)))}</button>`)+`</section>`;
     h+='<div class="segs" role="group" aria-label="Tipo de egreso">'+[['fijos','Fijos'],['variables','Variables']].map(p=>`<button type="button" data-action="eg" data-k="${p[0]}" aria-pressed="${S.eg===p[0]}">${p[1]}<small>${money(sum(T[p[0]]))}</small></button>`).join('')+'</div>';
     h+= S.eg==='fijos'?secFijos(T.fijos): secVariables(T.variables);
     return h;
@@ -848,6 +890,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
+    else if(a==='bring'){ openBring(); }
     else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
     else if(a==='repno'){ S.skipFx=S.month; render(); }
     else if(a==='copy'){ el.disabled=true; copyPrev(); }
