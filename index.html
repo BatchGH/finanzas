@@ -618,7 +618,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   function secFijos(list){
     const demo=isDemo(), F=fixedList(), cur=today();
-    let h=fixedBanner()+'<section><p class="note">Al empezar un mes te pregunto si quieres repetir los del mes pasado. Toca uno para cambiar su monto solo en '+esc(monthName(S.month))+'.</p></section>';
+    let h=fixedBanner()+'<section><p class="note"><small>v3 · plantillas de gasto fijo guardadas: '+F.length+' · pendientes este mes: '+pendingFixed().length+'</small><br>Al empezar un mes te pregunto si quieres repetir los del mes pasado. Toca uno para cambiar su monto solo en '+esc(monthName(S.month))+'.</p></section>';
     if(!list.length){
       h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses, como arriendo, luz o internet.</p></div>'
         : ensuring ? '<p class="empty">Agregando los gastos fijos del mes…</p>'
