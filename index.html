@@ -1,4 +1,5 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Mis Finanzas</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mis Finanzas"><meta name="theme-color" content="#2547C9"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}small.by{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+<!doctype html><html><head><meta charset="utf-8"><title>Mis Finanzas</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mis Finanzas"><meta name="theme-color" content="#2547C9"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}small.badge{background:var(--accent-soft);padding:1px 6px;border-radius:6px;margin-left:6px}
+small.by{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 </style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
@@ -359,9 +360,10 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   let unsub=null, db=null;
   function start(u){
-    hideAuth(); S.mode='db'; S.user=u.email; S.me={email:String(u.email).toLowerCase(),name:userName(u.email),pid:null}; S.ready=false; render();
+    S.synced=false; hideAuth(); S.mode='db'; S.user=u.email; S.me={email:String(u.email).toLowerCase(),name:userName(u.email),pid:null}; S.ready=false; render();
     const col=db.collection('hogar');
-    store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete() };
+    store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete(),
+      putMany:async recs=>{ for(let i=0;i<recs.length;i+=400){ const b=db.batch(); recs.slice(i,i+400).forEach(r=>b.set(col.doc(r.id),r)); await b.commit(); } } };
     if(unsub) unsub();
     unsub=col.onSnapshot(snap=>{
       const P=[],E=[],F=[];
@@ -372,6 +374,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
         else if(d.id.indexOf('i_')===0 || d.id.indexOf('g_')===0){ v.id=d.id; E.push(v); }
       });
       P.sort((a,b)=>(a.ts||0)-(b.ts||0));
+      if(!(snap.metadata&&snap.metadata.fromCache)) S.synced=true;
       S.persons=P; S.entries=E; S.fixed=F; S.ready=true; ensureMe().then(()=>{ render(); ensureAuto(); });
     },e=>{ S.ready=true; render(); toast(e&&e.code==='permission-denied'?'Este correo no tiene acceso a los datos del hogar':'No se pudo conectar con la base de datos'); });
   }
@@ -394,7 +397,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
      (o el mes actual si es posterior), con un tope de 12 meses hacia adelante. */
   let ensuring=false, again=false;
   async function ensureAuto(){
-    if(!S.ready || !store || isDemo()) return;
+    if(!S.ready || !store || isDemo() || !S.synced) return;
     if(ensuring){ again=true; return; }
     ensuring=true; render();
     try{
@@ -410,10 +413,15 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
             if(!have.has(id)) todo.push({id,kind:'egreso',month:m,cat:f.cat,name:f.name,amount:f.amount,fixedId:f.id,by:f.by,byName:f.byName,at:f.at||Date.now(),ts:Date.now()});
           }
         });
-        for(const rec of todo){ await store.put(rec); have.add(rec.id); }
-      }while(again);
+        if(todo.length){
+          const w = store.putMany ? store.putMany(todo) : Promise.all(todo.map(r=>store.put(r)));
+          await Promise.race([w, new Promise(res=>setTimeout(res,8000))]);
+          w.catch(()=>{});
+        }
+      }while(again && false);
     }catch(e){ toast('No se pudieron agregar los gastos fijos'); }
     ensuring=false; render();
+    if(again){ again=false; setTimeout(ensureAuto,50); }
   }
   async function applyFixedChange(f){
     const cur=today();
@@ -480,6 +488,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   const slug=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]+/g,'_');
   const userName=email=>((window.USERS||{})[String(email||'').toLowerCase()])||String(email||'').split('@')[0];
   const meId=()=>S.me?S.me.pid:null;
+  const isAdmin=()=>!!(S.me && (window.ADMINS||[]).map(x=>String(x).toLowerCase()).includes(S.me.email));
   const fdate=ts=>{ try{ return new Date(ts).toLocaleDateString('es-CL',{day:'numeric',month:'short'}); }catch(e){ return ''; } };
   function stamp(rec,isNew){
     if(!S.me) return rec;
@@ -546,7 +555,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       h+='<section><h2>Últimos 6 meses</h2>'+t.svg+'<ul class="kv" style="margin-top:14px">'
         +t.vals.slice().reverse().map(v=>{ const b=v.i-v.g; return `<li><span style="text-transform:capitalize">${esc(monthLabel(v.k))}</span><span class="mono ${b<0?'neg':'pos'}">${v.i||v.g?money(b):'—'}</span></li>`; }).join('')+'</ul></section>';
     }
-    h+='<p class="note">'+(S.mode==='db'?'Datos compartidos del hogar. Sesión: '+esc(S.user||'')+' · <button type="button" class="linkbtn" data-action="logout">Cerrar sesión</button>':'Tus datos se guardan solo en este navegador.')+'</p>';
+    h+='<p class="note">'+(S.mode==='db'?'Datos compartidos del hogar. Sesión: '+esc(S.user||'')+(isAdmin()?' (administrador)':'')+' · <button type="button" class="linkbtn" data-action="logout">Cerrar sesión</button>':'Tus datos se guardan solo en este navegador.')+'</p>';
     return h;
   }
 
@@ -564,8 +573,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     persons().forEach(p=>{
       const items=L.filter(e=>e.person===p.id).sort((a,b)=>b.amount-a.amount);
       h+=`<section><p class="grp"><span class="gname"><b>${esc(p.name)}</b>${p.id===meId()?'<small> (tú)</small>':''}</span><span class="mono">${money(sum(items))}</span></p><ul class="rows">`
-        +items.map(e=>`<li><button type="button" class="row" data-action="${demo?'demo':(e.person===meId()?'edit':'other')}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name||e.cat)}</b>${e.name?`<small>${esc(e.cat)}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt ingreso">+${money(e.amount)}</span></button></li>`).join('')
-         +(demo||p.id!==meId()?'':`<li><button type="button" class="row addrow" data-action="addp" data-person="${esc(p.id)}">+ Agregar ingreso a ${esc(p.name)}</button></li>`)
+        +items.map(e=>`<li><button type="button" class="row" data-action="${demo?'demo':(e.person===meId()||isAdmin()?'edit':'other')}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name||e.cat)}</b>${e.name?`<small>${esc(e.cat)}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt ingreso">+${money(e.amount)}</span></button></li>`).join('')
+         +(demo||(p.id!==meId()&&!isAdmin())?'':`<li><button type="button" class="row addrow" data-action="addp" data-person="${esc(p.id)}">+ Agregar ingreso a ${esc(p.name)}</button></li>`)
         +'</ul></section>';
     });
     return h;
@@ -603,6 +612,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     if(!list.length) return '<p class="empty">Sin gastos variables en '+esc(monthLabel(S.month))+'.<br>Aquí van los gastos que cambian cada mes, como mercado, salidas, farmacia o las cuotas de una deuda (categoría Deuda).</p>';
     return groupedByCat(list,()=>'');
   }
+  function safeRender(){ try{ render(); }catch(e){ console.error(e); try{ toast('Error al mostrar el mes: '+(e&&e.message||e)); }catch(_){} } }
+  window.addEventListener('error',ev=>{ try{ toast('Error: '+(ev.message||'desconocido')); }catch(_){} });
   function render(){
     $('#monthLabel').textContent=monthLabel(S.month);
     const withFab=S.tab==='ingresos'||S.tab==='egresos';
@@ -666,7 +677,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const title = t ? (t.fixedId?'Gasto fijo de '+monthName(t.month):(isI?'Editar ingreso':'Editar gasto')) : (isI?'Nuevo ingreso':'Nuevo gasto');
     const root=sheetBase(`
       <h3 id="sTitle">${esc(title)}</h3>
-      ${isI?`<p class="note">Ingreso de <b>${esc(S.me.name)}</b></p>`:''}
+      ${isI?(isAdmin()?`<div class="field"><label for="fPerson">Persona</label><select id="fPerson">${S.persons.map(p=>`<option value="${esc(p.id)}"${(t?t.person:(presetPerson||meId()))===p.id?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`:`<p class="note">Ingreso de <b>${esc(S.me.name)}</b></p>`):''}
       <div class="field"><label for="fName">${isI?'Nota (opcional)':'Descripción'}</label><input id="fName" type="text" list="fNames" maxlength="60" autocomplete="off" value="${esc(t&&t.name?t.name:'')}"><datalist id="fNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
       <div class="field"><label for="fAmt">${isI?'Ingreso mensual (CLP)':'Monto (CLP)'}</label><input id="fAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="0" value="${t?Number(t.amount).toLocaleString('es-CL'):''}"></div>
       <div class="field"><label for="fCat">Categoría</label>${catSelect('fCat',cats,t&&t.cat)}</div>
@@ -686,7 +697,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       if(!isI && !name){ err.textContent='Escribe una descripción.'; $('#fName').focus(); return; }
       if(amount<1){ err.textContent='Ingresa un monto mayor a cero.'; amt.focus(); return; }
       const rec=Object.assign({},t||{},{id:t?t.id:uid(isI?'i':'g'),kind,month:t?t.month:S.month,cat:c,name,amount,ts:t?(t.ts||Date.now()):Date.now()});
-      if(isI) rec.person=t?t.person:meId();
+      if(isI) rec.person=isAdmin()?$('#fPerson').value:(t?t.person:meId());
       stamp(rec,!t);
       if(t&&t.fixedId) rec.edited=true;
       try{ await store.put(rec); closeSheet(); render(); toast(t?'Cambios guardados':'Guardado'); }
@@ -792,8 +803,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const el=e.target.closest('[data-action]'); if(!el) return;
     const a=el.dataset.action;
     if(a==='tab'){ S.tab=el.dataset.tab; render(); window.scrollTo(0,0); }
-    else if(a==='prev'){ S.month=shiftMonth(S.month,-1); render(); }
-    else if(a==='next'){ S.month=shiftMonth(S.month,1); render(); ensureAuto(); }
+    else if(a==='prev'){ S.month=shiftMonth(S.month,-1); safeRender(); ensureAuto(); }
+    else if(a==='next'){ S.month=shiftMonth(S.month,1); safeRender(); ensureAuto(); }
     else if(a==='add'){
       if(S.tab==='ingresos') openEntry('ingreso',null);
       else if(S.eg==='fijos') openFixed(null);

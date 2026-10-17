@@ -12,3 +12,4 @@ window.ALLOWED_EMAILS = ["richarddarocha21@gmail.com", "barbarapaez16@gmail.com"
 
 // Cada correo queda asignado a su persona fija
 window.USERS = {"richarddarocha21@gmail.com":"Richard","barbarapaez16@gmail.com":"Bárbara"};
+window.ADMINS = ["richarddarocha21@gmail.com"];
