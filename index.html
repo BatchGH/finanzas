@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Mis Finanzas</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mis Finanzas"><meta name="theme-color" content="#F2F5F4"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset="utf-8"><title>Mis Finanzas</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mis Finanzas"><meta name="theme-color" content="#2547C9"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: una hoja por mes. Cabecera fija con el mes; tres secciones (Resumen, Ingresos, Egresos);
@@ -177,6 +177,11 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(130px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.auth{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:max(24px,env(safe-area-inset-top,0px)) 16px 24px}
+.auth .box{max-width:420px;margin:8vh auto 0;display:flex;flex-direction:column;gap:14px}
+.auth h2{font:700 26px/1.1 var(--f-display);letter-spacing:-.01em;color:var(--ink);text-transform:none;margin:0}
+.auth .field input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}
+.auth .ok{color:var(--pos);font-size:13.5px;margin:0;min-height:1em}
 </style>
 
 <header class="top">
@@ -203,9 +208,15 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
 </nav>
 
 <div id="sheetRoot"></div>
+<div class="auth" id="auth" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 (function(){
   const DEF_G = ['Vivienda y cuentas','Deuda','Plataformas y suscripciones','Alimentación y limpieza','Salud','Transporte','Mascotas','Gastos personales','Otros'];
   const DEF_I = ['Sueldo','Honorarios','Ventas','Otros ingresos'];
@@ -305,48 +316,81 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
       del(id){ const k=listFor(id); S[k]=S[k].filter(x=>x.id!==id); persist(); render(); return Promise.resolve(); }
     };
   }
-  /* Copia una sola vez los datos que estaban en el espacio privado de cada persona al espacio compartido */
-  async function migrateOld(db,col,id){
-    try{
-      if(!id) return;
-      if((await col.doc('_meta').get()).exists) return;
-      const shared=await col.limit(1).get();
-      if(!shared.empty){ await col.doc('_meta').set({shared:true}); return; }
-      const old=await db.collection('data/users/'+id).limit(500).get();
-      if(old.empty) return;
-      for(const d of old.docs){ await col.doc(d.id).set(d.data()); }
-      await col.doc('_meta').set({migrated:true});
-    }catch(e){}
+  /* ---------- Firebase: inicio de sesión y datos compartidos ---------- */
+  let auth=null;
+  const authEl=()=>$('#auth');
+  function hideAuth(){ authEl().hidden=true; authEl().innerHTML=''; }
+  function authErr(e){
+    const c=(e&&e.code)||'';
+    if(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found')) return 'Correo o contraseña incorrectos.';
+    if(c.includes('email-already-in-use')) return 'Ese correo ya tiene cuenta. Usa "Entrar".';
+    if(c.includes('weak-password')) return 'La contraseña debe tener al menos 6 caracteres.';
+    if(c.includes('invalid-email')) return 'Revisa el correo.';
+    if(c.includes('too-many-requests')) return 'Demasiados intentos. Espera un momento.';
+    if(c.includes('network')) return 'Sin conexión. Intenta de nuevo.';
+    return 'No se pudo completar. Intenta de nuevo.';
+  }
+  function showAuth(u){
+    const el=authEl(); el.hidden=false;
+    if(u && !u.emailVerified){
+      el.innerHTML=`<div class="box"><h2>Verifica tu correo</h2><p class="note">Te enviamos un enlace a <b>${esc(u.email)}</b>. Ábrelo (revisa también spam) y luego vuelve aquí.</p>
+        <button type="button" class="btn" id="aDone">Ya lo verifiqué</button>
+        <button type="button" class="btn ghost" id="aResend">Reenviar correo</button>
+        <button type="button" class="linkbtn" id="aOut">Usar otra cuenta</button>
+        <p class="err" id="aErr" role="alert"></p><p class="ok" id="aOk"></p></div>`;
+      $('#aDone').onclick=async()=>{ try{ await u.reload(); if(auth.currentUser.emailVerified){ await auth.currentUser.getIdToken(true); start(auth.currentUser); } else $('#aErr').textContent='Aún no aparece verificado. Abre el enlace del correo.'; }catch(e){ $('#aErr').textContent=authErr(e); } };
+      $('#aResend').onclick=async()=>{ try{ await u.sendEmailVerification(); $('#aOk').textContent='Correo reenviado.'; }catch(e){ $('#aErr').textContent=authErr(e); } };
+      $('#aOut').onclick=()=>auth.signOut();
+      return;
+    }
+    el.innerHTML=`<div class="box"><h2>Mis Finanzas</h2><p class="note">Entra con tu correo del hogar.</p>
+      <div class="field"><label for="aEmail">Correo</label><input id="aEmail" type="email" autocomplete="username" inputmode="email"></div>
+      <div class="field"><label for="aPass">Contraseña</label><input id="aPass" type="password" autocomplete="current-password"></div>
+      <p class="err" id="aErr" role="alert"></p><p class="ok" id="aOk"></p>
+      <button type="button" class="btn" id="aIn">Entrar</button>
+      <button type="button" class="btn ghost" id="aNew">Crear cuenta</button>
+      <button type="button" class="linkbtn" id="aReset">Olvidé mi contraseña</button></div>`;
+    const em=()=>$('#aEmail').value.trim().toLowerCase(), pw=()=>$('#aPass').value, err=t=>{ $('#aErr').textContent=t; $('#aOk').textContent=''; };
+    const allowed=(window.ALLOWED_EMAILS||[]).map(x=>x.toLowerCase());
+    $('#aIn').onclick=async()=>{ try{ await auth.signInWithEmailAndPassword(em(),pw()); }catch(e){ err(authErr(e)); } };
+    $('#aNew').onclick=async()=>{
+      if(allowed.length && !allowed.includes(em())){ err('Este correo no está autorizado para esta app.'); return; }
+      try{ const c=await auth.createUserWithEmailAndPassword(em(),pw()); await c.user.sendEmailVerification(); }catch(e){ err(authErr(e)); }
+    };
+    $('#aReset').onclick=async()=>{ if(!em()){ err('Escribe tu correo primero.'); return; } try{ await auth.sendPasswordResetEmail(em()); $('#aErr').textContent=''; $('#aOk').textContent='Te enviamos un correo para cambiar la contraseña.'; }catch(e){ err(authErr(e)); } };
+    $('#aPass').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#aIn').click(); });
+  }
+  let unsub=null, db=null;
+  function start(u){
+    hideAuth(); S.mode='db'; S.user=u.email; S.ready=false; render();
+    const col=db.collection('hogar');
+    store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete() };
+    if(unsub) unsub();
+    unsub=col.onSnapshot(snap=>{
+      const P=[],E=[],F=[];
+      snap.docs.forEach(d=>{
+        const v=d.data()||{};
+        if(d.id.indexOf('p_')===0){ v.id=d.id; P.push(v); }
+        else if(d.id.indexOf('f_')===0){ v.id=d.id; F.push(v); }
+        else if(d.id.indexOf('i_')===0 || d.id.indexOf('g_')===0){ v.id=d.id; E.push(v); }
+      });
+      P.sort((a,b)=>(a.ts||0)-(b.ts||0));
+      S.persons=P; S.entries=E; S.fixed=F; S.ready=true; render(); ensureAuto();
+    },e=>{ S.ready=true; render(); toast(e&&e.code==='permission-denied'?'Este correo no tiene acceso a los datos del hogar':'No se pudo conectar con la base de datos'); });
   }
   async function initStore(){
-    let db=null,user=null,id=null;
-    try{
-      if(window.claude && window.claude.use){
-        const got=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
-        db=got[0]; user=got[1];
-        id = user ? await user.id() : null;
-      }
-    }catch(e){}
-    if(db){
-      S.mode='db';
-      const col=db.collection('hogar');
-      await migrateOld(db,col,id);
-      store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete() };
-      col.onSnapshot(snap=>{
-        const P=[],E=[],F=[];
-        snap.docs.forEach(d=>{
-          const v=d.data()||{};
-          if(d.id.indexOf('p_')===0){ v.id=d.id; P.push(v); }
-          else if(d.id.indexOf('f_')===0){ v.id=d.id; F.push(v); }
-          else if(d.id.indexOf('i_')===0 || d.id.indexOf('g_')===0){ v.id=d.id; E.push(v); }
-        });
-        P.sort((a,b)=>(a.ts||0)-(b.ts||0));
-        S.persons=P; S.entries=E; S.fixed=F; S.ready=true; render(); ensureAuto();
-      },()=>{ S.ready=true; render(); toast('No se pudo conectar con el almacenamiento'); });
-    }else{
-      store=localStore(); S.ready=true; render(); ensureAuto();
-    }
+    const cfg=window.FIREBASE_CONFIG;
+    if(!window.firebase || !cfg || !cfg.apiKey){ store=localStore(); S.ready=true; render(); ensureAuto(); return; }
+    firebase.initializeApp(cfg);
+    auth=firebase.auth(); db=firebase.firestore();
+    try{ db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch(e){}
+    auth.onAuthStateChanged(u=>{
+      if(unsub){ unsub(); unsub=null; }
+      if(!u || !u.emailVerified){ store=null; S.ready=false; S.persons=[]; S.entries=[]; S.fixed=[]; render(); showAuth(u); return; }
+      start(u);
+    });
   }
+  window.__logout=()=>auth&&auth.signOut();
 
   /* ---------- gastos fijos: asignación automática ----------
      Se crean en cada mes desde que se definió el gasto hasta el mes que se está viendo
@@ -481,7 +525,7 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
       h+='<section><h2>Últimos 6 meses</h2>'+t.svg+'<ul class="kv" style="margin-top:14px">'
         +t.vals.slice().reverse().map(v=>{ const b=v.i-v.g; return `<li><span style="text-transform:capitalize">${esc(monthLabel(v.k))}</span><span class="mono ${b<0?'neg':'pos'}">${v.i||v.g?money(b):'—'}</span></li>`; }).join('')+'</ul></section>';
     }
-    h+='<p class="note">'+(S.mode==='db'?'Los datos se comparten con todas las personas que tengan acceso de edición a esta app.':'Tus datos se guardan solo en este navegador. Abre la app con tu cuenta de Claude para compartirlos.')+'</p>';
+    h+='<p class="note">'+(S.mode==='db'?'Datos compartidos del hogar. Sesión: '+esc(S.user||'')+' · <button type="button" class="linkbtn" data-action="logout">Cerrar sesión</button>':'Tus datos se guardan solo en este navegador.')+'</p>';
     return h;
   }
 
@@ -742,6 +786,7 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
     else if(a==='eg'){ S.eg=el.dataset.k; render(); }
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
+    else if(a==='logout'){ window.__logout(); }
     else if(a==='copy'){ el.disabled=true; copyPrev(); }
   });
 
