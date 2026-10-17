@@ -1,4 +1,11 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Mis Finanzas</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mis Finanzas"><meta name="theme-color" content="#2547C9"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}small.badge{background:var(--accent-soft);padding:1px 6px;border-radius:6px;margin-left:6px}
+li.strow{display:flex;align-items:center;gap:6px;padding-right:10px}
+li.strow .row{flex:1;min-width:0}
+.pill{font:600 11px var(--f-body,inherit);border:0;border-radius:999px;padding:5px 10px;white-space:nowrap}
+.st-pendiente{background:#FFF1D6;color:#8A5A00}
+.st-pagado{background:#DDF3E4;color:#14683A}
+.st-aplazado{background:#E7E9EE;color:#4A5568}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .st-pendiente{background:#4A3A12;color:#F0C46A}:root:not([data-theme=light]) .st-pagado{background:#17402A;color:#8AD6A8}:root:not([data-theme=light]) .st-aplazado{background:#2C3038;color:#B4BCC9}}
 small.by{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 </style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -251,6 +258,10 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   const fxId = (fid,m) => 'g_fx_'+fid+'_'+m;
   const incomes = m => entries().filter(e=>e.kind==='ingreso' && e.month===m);
   const expenses = m => entries().filter(e=>e.kind==='egreso' && e.month===m);
+  /* estado de un egreso: pendiente, pagado o aplazado (sin dato: pagado si el mes ya pasó) */
+  const ST=['pendiente','pagado','aplazado'], ST_LABEL={pendiente:'Pendiente',pagado:'Pagado',aplazado:'Aplazado'};
+  const stOf = e => e.status || (e.month<today()?'pagado':'pendiente');
+  const counted = l => l.filter(e=>stOf(e)!=='aplazado');
   const byType = list => ({ fijos:list.filter(e=>e.fixedId), variables:list.filter(e=>!e.fixedId) });
 
   function allCats(kind){
@@ -512,6 +523,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     lastFocus=document.activeElement;
     sheetBase(`<h3 id="sTitle">${esc(f.name)} · ${esc(monthName(S.month))}</h3>
       <div class="field"><label for="lAmt">Monto (CLP)</label><input id="lAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="${f.amount>0?Number(f.amount).toLocaleString('es-CL'):'0'}"></div>
+      <div class="field"><label for="lSt">Estado</label><select id="lSt">${ST.map(x=>`<option value="${x}"${x==='pendiente'?' selected':''}>${ST_LABEL[x]}</option>`).join('')}</select></div>
       <p class="note">${esc(f.cat)}</p><p class="err" id="lErr" role="alert"></p>
       <div class="actions"><button type="button" class="btn" id="lSave">Guardar</button><button type="button" class="btn ghost" id="lSkip">No aplica este mes</button><button type="button" class="btn ghost" id="lEdit">Editar o quitar este gasto fijo</button><button type="button" class="btn ghost" id="lCancel">Cancelar</button></div>`);
     const amt=$('#lAmt'); amt.addEventListener('input',()=>{ amt.value=fmtInput(amt.value); }); amt.focus();
@@ -521,7 +533,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     $('#lSave').addEventListener('click',async()=>{
       const v=num(amt.value);
       if(v<1){ $('#lErr').textContent='Escribe el monto, o usa "No aplica este mes".'; amt.focus(); return; }
-      try{ await store.put(stamp(Object.assign(base(),{amount:v}),true)); closeSheet(); render(); toast('Guardado'); }
+      try{ await store.put(stamp(Object.assign(base(),{amount:v,status:$('#lSt').value}),true)); closeSheet(); render(); toast('Guardado'); }
       catch(e){ $('#lErr').textContent='No se pudo guardar. Intenta de nuevo.'; }
     });
     $('#lSkip').addEventListener('click',async()=>{
@@ -591,7 +603,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   function trendSVG(){
     const months=[0,1,2,3,4,5].map(i=>shiftMonth(S.month,i-5));
-    const vals=months.map(k=>({k,i:sum(incomes(k)),g:sum(expenses(k))}));
+    const vals=months.map(k=>({k,i:sum(incomes(k)),g:sum(counted(expenses(k)))}));
     const peak=Math.max(...vals.map(v=>Math.max(v.i,v.g)));
     if(!peak) return null;
     const max=niceMax(peak), W=360,H=172,L=46,R=6,T=12,B=26, pw=W-L-R, ph=H-T-B, cw=pw/6, bw=Math.min(15,cw*0.3);
@@ -650,19 +662,20 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   function entryRows(items,sub){
     const demo=isDemo();
-    return '<ul class="rows">'+items.map(e=>`<li><button type="button" class="row" data-action="${demo?'demo':'edit'}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name)}</b>${sub(e)?`<small>${sub(e)}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt">${money(e.amount)}</span></button></li>`).join('')+'</ul>';
+    return '<ul class="rows">'+items.map(e=>{ const st=stOf(e);
+      return `<li class="strow"><button type="button" class="row" data-action="${demo?'demo':'edit'}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name)}</b>${sub(e)?`<small>${sub(e)}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt" style="${st==='aplazado'?'opacity:.5;text-decoration:line-through':''}">${money(e.amount)}</span></button><button type="button" class="pill st-${st}" data-action="${demo?'demo':'st'}" data-id="${esc(e.id)}" aria-label="Estado: ${ST_LABEL[st]}. Toca para cambiar">${ST_LABEL[st]}</button></li>`; }).join('')+'</ul>';
   }
   function groupedByCat(items,sub){
     return allCats('egreso').map(c=>({c,items:items.filter(e=>e.cat===c).sort((a,b)=>b.amount-a.amount)})).filter(g=>g.items.length)
       .sort((a,b)=>sum(b.items)-sum(a.items))
-      .map(g=>`<section><p class="grp"><b>${esc(g.c)}</b><span class="mono">${money(sum(g.items))}</span></p>${entryRows(g.items,sub)}</section>`).join('');
+      .map(g=>`<section><p class="grp"><b>${esc(g.c)}</b><span class="mono">${money(sum(counted(g.items)))}</span></p>${entryRows(g.items,sub)}</section>`).join('');
   }
 
   /* ---------- vista: Resumen ---------- */
   function viewResumen(){
     const year=S.month.slice(0,4), byYear=S.period==='anio';
     const inScope=e=>byYear?e.month.slice(0,4)===year:e.month===S.month;
-    const I=entries().filter(e=>e.kind==='ingreso'&&inScope(e)), G=entries().filter(e=>e.kind==='egreso'&&inScope(e));
+    const I=entries().filter(e=>e.kind==='ingreso'&&inScope(e)), G=counted(entries().filter(e=>e.kind==='egreso'&&inScope(e)));
     const label=byYear?'Año '+year:monthLabel(S.month);
     let h=demoBanner();
     h+=`<div class="chips" role="group" aria-label="Período"><button type="button" class="chip" data-action="period" data-p="mes" aria-pressed="${!byYear}" style="text-transform:capitalize">${esc(monthLabel(S.month))}</button><button type="button" class="chip" data-action="period" data-p="anio" aria-pressed="${byYear}">Año ${year}</button></div>`;
@@ -724,10 +737,15 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   function viewEgresos(){
     const L=expenses(S.month), T=byType(L);
     let h=demoBanner();
-    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(L))}</p>`+`</section>`;
-    h+='<div class="segs" role="group" aria-label="Tipo de egreso">'+[['fijos','Fijos'],['variables','Variables']].map(p=>`<button type="button" data-action="eg" data-k="${p[0]}" aria-pressed="${S.eg===p[0]}">${p[1]}<small>${money(sum(T[p[0]]))}</small></button>`).join('')+'</div>';
+    h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(counted(L)))}</p>`+stLine(L)+`</section>`;
+    h+='<div class="segs" role="group" aria-label="Tipo de egreso">'+[['fijos','Fijos'],['variables','Variables']].map(p=>`<button type="button" data-action="eg" data-k="${p[0]}" aria-pressed="${S.eg===p[0]}">${p[1]}<small>${money(sum(counted(T[p[0]])))}</small></button>`).join('')+'</div>';
     h+= S.eg==='fijos'?secFijos(T.fijos): secVariables(T.variables);
     return h;
+  }
+  function stLine(L){
+    const t={pendiente:0,pagado:0,aplazado:0}; L.forEach(e=>{ t[stOf(e)]+=e.amount; });
+    if(!L.length) return '';
+    return `<p class="note" style="margin:6px 0 0"><span class="pill st-pagado">Pagado ${money(t.pagado)}</span> <span class="pill st-pendiente">Pendiente ${money(t.pendiente)}</span>${t.aplazado?` <span class="pill st-aplazado">Aplazado ${money(t.aplazado)}</span>`:''}</p>`;
   }
   function secFijos(list){
     const demo=isDemo(), F=fixedList(), cur=today();
@@ -740,8 +758,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses con "+ Gasto fijo".</p></div>' : '';
     } else {
       const habitual=id=>{ const f=F.find(x=>x.id===id); return f?f.amount:null; };
-      h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(list))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
-      h+=groupedByCat(list,e=>{ const hb=habitual(e.fixedId); return hb!=null && hb!==e.amount ? 'Habitual '+money(hb) : ''; });
+      h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(counted(list)))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
+      h+=groupedByCat(list,e=>{ const hb=habitual(e.fixedId); return hb>0 && hb!==e.amount ? 'Habitual '+money(hb) : ''; });
     }
     if(!demo){
       const have=new Set(F.map(f=>f.name.toLowerCase()));
@@ -823,6 +841,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       <div class="field"><label for="fName">${isI?'Nota (opcional)':'Descripción'}</label><input id="fName" type="text" list="fNames" maxlength="60" autocomplete="off" value="${esc(t&&t.name?t.name:'')}"><datalist id="fNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
       <div class="field"><label for="fAmt">${isI?'Ingreso mensual (CLP)':'Monto (CLP)'}</label><input id="fAmt" class="amount" inputmode="numeric" autocomplete="off" placeholder="0" value="${t?Number(t.amount).toLocaleString('es-CL'):''}"></div>
       <div class="field"><label for="fCat">Categoría</label>${catSelect('fCat',cats,t&&t.cat)}</div>
+      ${isI?'':`<div class="field"><label for="fSt">Estado</label><select id="fSt">${ST.map(x=>`<option value="${x}"${(t?stOf(t):'pendiente')===x?' selected':''}>${ST_LABEL[x]}${x==='aplazado'?' (no se paga este mes)':''}</option>`).join('')}</select></div>`}
       <div class="field" id="newCatWrap" hidden><label for="fNewCat">Nombre de la nueva categoría</label><input id="fNewCat" type="text" maxlength="40" autocomplete="off"></div>
       ${t&&t.fixedId?'<p class="note">Lo que cambies aquí aplica solo a '+esc(monthName(t.month))+'.</p>':''}
       ${hasTpl?'<button type="button" class="linkbtn" id="fTpl">Editar este gasto fijo para todos los meses</button>':''}
@@ -839,6 +858,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       if(!isI && !name){ err.textContent='Escribe una descripción.'; $('#fName').focus(); return; }
       if(amount<1){ err.textContent='Ingresa un monto mayor a cero.'; amt.focus(); return; }
       const rec=Object.assign({},t||{},{id:t?t.id:uid(isI?'i':'g'),kind,month:t?t.month:S.month,cat:c,name,amount,ts:t?(t.ts||Date.now()):Date.now()});
+      if(!isI) rec.status=$('#fSt').value;
       if(isI) rec.person=isAdmin()?$('#fPerson').value:(t?t.person:meId());
       stamp(rec,!t);
       if(t&&t.fixedId) rec.edited=true;
@@ -960,6 +980,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
+    else if(a==='st'){ const x=S.entries.find(z=>z.id===el.dataset.id); if(x){ const n=ST[(ST.indexOf(stOf(x))+1)%3]; store.put(Object.assign({},x,{status:n})).catch(()=>toast('No se pudo cambiar el estado')); toast(ST_LABEL[n]); } }
     else if(a==='manage'){ openManage(); }
     else if(a==='fill'){ openFill(el.dataset.fid); }
     else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
