@@ -8,7 +8,7 @@
   --accent:#2547C9; --accent-ink:#FFFFFF; --accent-soft:#E3E9FB;
   --pos:#17734A; --pos-soft:#DDF1E6; --warn:#A8620A; --warn-soft:#FBEBD3; --neg:#B23A2B; --neg-soft:#F8E0DC;
   --c1:#2547C9; --c2:#1F9D6B; --c3:#E0902B; --c4:#C8467A; --c5:#7A5AE0; --c6:#17A2B8; --c7:#B5532A; --c8:#6B7A76;
-  --k-vivienda:#2547C9; --k-deuda:#C23B2E; --k-plataformas:#7A5AE0; --k-alimentacion:#E0902B; --k-salud:#17A2B8; --k-transporte:#5D7185; --k-mascotas:#9A5B2C; --k-personal:#C8467A; --k-otros:#8A9692;
+  --k-vivienda:#2547C9; --k-deuda:#C23B2E; --k-plataformas:#7A5AE0; --k-alimentacion:#E0902B; --k-salud:#17A2B8; --k-transporte:#5D7185; --k-mascotas:#9A5B2C; --k-personal:#C8467A; --k-otros:#8A9692; --k-sueldo:#17734A; --k-honorarios:#7C9A1E; --k-ventas:#D4B000;
   --k-x1:#2A7FA8; --k-x2:#B58900; --k-x3:#6C6EA0; --k-x4:#A9557A;
   --inc1:#17734A; --inc2:#2FA36B; --inc3:#6DBE8A; --inc4:#9CBFA8;
   --t1:#2547C9; --t2:#8FA3C7;
@@ -22,7 +22,7 @@
     --accent:#8DA2FF; --accent-ink:#0B1230; --accent-soft:#1E2850;
     --pos:#5CD196; --pos-soft:#17332A; --warn:#E8A95B; --warn-soft:#3A2B14; --neg:#FF8D7C; --neg-soft:#3B1F1B;
     --c1:#8DA2FF; --c2:#5CD196; --c3:#F0B35E; --c4:#F083AB; --c5:#AD94FF; --c6:#58C9DC; --c7:#E68A62; --c8:#98A8A4;
-    --k-vivienda:#8DA2FF; --k-deuda:#FF8D7C; --k-plataformas:#AD94FF; --k-alimentacion:#F0B35E; --k-salud:#58C9DC; --k-transporte:#9AAFC4; --k-mascotas:#D49A68; --k-personal:#F083AB; --k-otros:#98A8A4;
+    --k-vivienda:#8DA2FF; --k-deuda:#FF8D7C; --k-plataformas:#AD94FF; --k-alimentacion:#F0B35E; --k-salud:#58C9DC; --k-transporte:#9AAFC4; --k-mascotas:#D49A68; --k-personal:#F083AB; --k-otros:#98A8A4; --k-sueldo:#5CD196; --k-honorarios:#B5D35A; --k-ventas:#F0D24A;
     --k-x1:#6FB3D9; --k-x2:#E0BE4A; --k-x3:#9C9ED6; --k-x4:#D68AAE;
     --inc1:#5CD196; --inc2:#3FB67F; --inc3:#86D4A0; --inc4:#5F8F73;
     --t1:#8DA2FF; --t2:#4A5E8F;
@@ -34,7 +34,7 @@
   --accent:#8DA2FF; --accent-ink:#0B1230; --accent-soft:#1E2850;
   --pos:#5CD196; --pos-soft:#17332A; --warn:#E8A95B; --warn-soft:#3A2B14; --neg:#FF8D7C; --neg-soft:#3B1F1B;
   --c1:#8DA2FF; --c2:#5CD196; --c3:#F0B35E; --c4:#F083AB; --c5:#AD94FF; --c6:#58C9DC; --c7:#E68A62; --c8:#98A8A4;
-    --k-vivienda:#8DA2FF; --k-deuda:#FF8D7C; --k-plataformas:#AD94FF; --k-alimentacion:#F0B35E; --k-salud:#58C9DC; --k-transporte:#9AAFC4; --k-mascotas:#D49A68; --k-personal:#F083AB; --k-otros:#98A8A4;
+    --k-vivienda:#8DA2FF; --k-deuda:#FF8D7C; --k-plataformas:#AD94FF; --k-alimentacion:#F0B35E; --k-salud:#58C9DC; --k-transporte:#9AAFC4; --k-mascotas:#D49A68; --k-personal:#F083AB; --k-otros:#98A8A4; --k-sueldo:#5CD196; --k-honorarios:#B5D35A; --k-ventas:#F0D24A;
     --k-x1:#6FB3D9; --k-x2:#E0BE4A; --k-x3:#9C9ED6; --k-x4:#D68AAE;
     --inc1:#5CD196; --inc2:#3FB67F; --inc3:#86D4A0; --inc4:#5F8F73;
     --t1:#8DA2FF; --t2:#4A5E8F;
@@ -260,18 +260,14 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
      (Deuda en rojo, nunca en verde). Las categorías nuevas usan tonos neutros de reserva. */
   const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const EG_RULES = [['deuda','deuda'],['vivienda','vivienda'],['plataforma','plataformas'],['suscrip','plataformas'],['aliment','alimentacion'],['limpieza','alimentacion'],['mercado','alimentacion'],['salud','salud'],['transporte','transporte'],['mascota','mascotas'],['personal','personal'],['otro','otros']];
-  const IN_RULES = [['sueldo',1],['honorario',2],['venta',3],['otro',4]];
+  /* Una sola paleta para ingresos y egresos: la misma categoría tiene el mismo color en ambos lados */
+  const IN_RULES = [['sueldo','sueldo'],['honorario','honorarios'],['venta','ventas']];
   function colorOf(kind,cat){
     const n=norm(cat);
-    if(kind==='ingreso'){
-      const m=IN_RULES.find(r=>n.includes(r[0]));
-      if(m) return 'var(--inc'+m[1]+')';
-      const custom=allCats('ingreso').filter(c=>!IN_RULES.some(r=>norm(c).includes(r[0])));
-      return 'var(--inc'+((Math.max(0,custom.indexOf(cat))%4)+1)+')';
-    }
-    const m=EG_RULES.find(r=>n.includes(r[0]));
+    const m=EG_RULES.concat(IN_RULES).find(r=>n.includes(r[0]));
     if(m) return 'var(--k-'+m[1]+')';
-    const custom=allCats('egreso').filter(c=>!EG_RULES.some(r=>norm(c).includes(r[0])));
+    const known=EG_RULES.concat(IN_RULES);
+    const custom=allCats('egreso').concat(allCats('ingreso')).filter((c,i,arr)=>arr.indexOf(c)===i && !known.some(r=>norm(c).includes(r[0])));
     return 'var(--k-x'+((Math.max(0,custom.indexOf(cat))%4)+1)+')';
   }
 
