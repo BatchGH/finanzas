@@ -364,6 +364,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const col=db.collection('hogar');
     store={ put:rec=>col.doc(rec.id).set(rec), del:rid=>col.doc(rid).delete(),
       putCfg:v=>col.doc('_cfg').set(v),
+      delMany:async ids=>{ for(let i=0;i<ids.length;i+=400){ const b=db.batch(); ids.slice(i,i+400).forEach(x=>b.delete(col.doc(x))); await b.commit(); } },
       putMany:async recs=>{ for(let i=0;i<recs.length;i+=400){ const b=db.batch(); recs.slice(i,i+400).forEach(r=>b.set(col.doc(r.id),r)); await b.commit(); } } };
     if(unsub) unsub();
     unsub=col.onSnapshot(snap=>{
@@ -543,6 +544,35 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       await store.putCfg({fixedSeeded:true});
     }catch(e){ S.cfgSeeded=false; }
   }
+  /* administrar datos: borrar un mes o vaciar todo (solo administrador) */
+  async function delIds(ids){ if(!ids.length) return; if(store.delMany) await store.delMany(ids); else for(const i of ids) await store.del(i); }
+  function openManage(){
+    if(!isAdmin()) return;
+    lastFocus=document.activeElement;
+    const mid=S.entries.filter(e=>e.month===S.month).map(e=>e.id);
+    const all=S.entries.length, tpl=S.fixed.length;
+    sheetBase(`<h3 id="sTitle">Administrar datos</h3>
+      <p class="note"><b>Borrar ${esc(monthName(S.month))}</b><br>Elimina los ${mid.length} movimientos de este mes (ingresos y egresos). Tus gastos fijos guardados y las demás fechas no se tocan.</p>
+      <div class="actions"><button type="button" class="btn danger" id="mDel">Borrar ${esc(monthName(S.month))}</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <p class="note"><b>Empezar de cero</b><br>Elimina TODOS los ingresos y egresos de todos los meses (${all}) y tu lista de gastos fijos (${tpl}); luego vuelve la lista inicial (Arriendo, Luz, Agua, Gastos comunes) en $0. Los usuarios Richard y Bárbara se mantienen. No se puede deshacer.</p>
+      <div class="field"><label for="mWord">Escribe BORRAR para confirmar</label><input id="mWord" type="text" autocomplete="off"></div>
+      <p class="err" id="mErr" role="alert"></p>
+      <div class="actions"><button type="button" class="btn danger" id="mAll">Vaciar todo y empezar de cero</button><button type="button" class="btn ghost" id="mCancel">Cancelar</button></div>`);
+    $('#mCancel').addEventListener('click',closeSheet);
+    armDelete($('#mDel'),'Borrar '+monthName(S.month),'Confirmar: borrar '+mid.length+' movimientos',async()=>{
+      await delIds(mid); closeSheet(); render(); toast(monthName(S.month)+' borrado');
+    },$('#mErr'));
+    $('#mAll').addEventListener('click',async()=>{
+      if($('#mWord').value.trim().toUpperCase()!=='BORRAR'){ $('#mErr').textContent='Escribe BORRAR para confirmar.'; return; }
+      try{
+        await delIds(S.entries.map(e=>e.id).concat(S.fixed.map(f=>f.id)));
+        if(store.putCfg) await store.putCfg({fixedSeeded:false});
+        S.cfgSeeded=false; closeSheet(); render(); toast('Todo borrado. Empiezas de cero.');
+        setTimeout(()=>{ ensureDefaults(); },600);
+      }catch(e){ $('#mErr').textContent='No se pudo borrar todo. Intenta de nuevo.'; }
+    });
+  }
   function copyBanner(){
     if(isDemo()) return '';
     if(S.entries.some(e=>e.month===S.month && e.kind==='ingreso' && !e.deleted)) return '';
@@ -664,6 +694,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       h+='<section><h2>Últimos 6 meses</h2>'+t.svg+'<ul class="kv" style="margin-top:14px">'
         +t.vals.slice().reverse().map(v=>{ const b=v.i-v.g; return `<li><span style="text-transform:capitalize">${esc(monthLabel(v.k))}</span><span class="mono ${b<0?'neg':'pos'}">${v.i||v.g?money(b):'—'}</span></li>`; }).join('')+'</ul></section>';
     }
+    if(S.mode==='db' && isAdmin()) h+='<section><button type="button" class="btn ghost" data-action="manage">Administrar datos (borrar mes o empezar de cero)</button></section>';
     h+='<p class="note">'+(S.mode==='db'?'Datos compartidos del hogar. Sesión: '+esc(S.user||'')+(isAdmin()?' (administrador)':'')+' · <button type="button" class="linkbtn" data-action="logout">Cerrar sesión</button>':'Tus datos se guardan solo en este navegador.')+'</p>';
     return h;
   }
@@ -929,6 +960,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
+    else if(a==='manage'){ openManage(); }
     else if(a==='fill'){ openFill(el.dataset.fid); }
     else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
     else if(a==='repno'){ S.skipFx=S.month; render(); }
