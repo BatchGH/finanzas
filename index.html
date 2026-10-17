@@ -397,6 +397,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
      (o el mes actual si es posterior), con un tope de 12 meses hacia adelante. */
   let ensuring=false, again=false;
   async function ensureAuto(){
+    return; /* ya no se asignan solos: se ofrece "Repetir gastos fijos" al empezar el mes */
     if(!S.ready || !store || isDemo() || !S.synced) return;
     if(ensuring){ again=true; return; }
     ensuring=true; render();
@@ -433,6 +434,30 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   function demoBanner(){
     if(!isDemo()) return '';
     return '<div class="banner"><p><b>Datos de ejemplo.</b> Desaparecen cuando agregues tu primera persona o tu primer gasto.</p><button type="button" class="btn" data-action="newperson">Agregar persona</button></div>';
+  }
+  /* gastos fijos del mes anterior que aún no están en el mes que se ve */
+  function pendingFixed(){
+    if(isDemo()) return [];
+    const prev=shiftMonth(S.month,-1);
+    const have=new Set(S.entries.filter(e=>e.fixedId&&e.month===S.month).map(e=>e.fixedId));
+    const seen=new Set();
+    return S.entries.filter(e=>e.month===prev && e.fixedId && !e.deleted && !have.has(e.fixedId) && S.fixed.some(f=>f.id===e.fixedId) && !seen.has(e.fixedId) && seen.add(e.fixedId));
+  }
+  function fixedBanner(){
+    if(S.skipFx===S.month) return '';
+    const L=pendingFixed(); if(!L.length) return '';
+    const prev=shiftMonth(S.month,-1);
+    return `<div class="banner"><p><b>¿Repetir los gastos fijos de ${esc(monthName(prev))}?</b><br>Hay ${L.length} sin agregar en ${esc(monthName(S.month))}: ${esc(L.slice(0,4).map(e=>e.name).join(', '))}${L.length>4?'…':''}.</p><div class="actions"><button type="button" class="btn" data-action="repfx">Sí, repetir</button><button type="button" class="btn ghost" data-action="repno">Ahora no</button></div></div>`;
+  }
+  async function repeatFixed(){
+    const L=pendingFixed(); if(!L.length) return;
+    try{
+      const recs=L.map(e=>{ const f=S.fixed.find(x=>x.id===e.fixedId);
+        return {id:fxId(e.fixedId,S.month),kind:'egreso',month:S.month,cat:f.cat,name:f.name,amount:f.amount,fixedId:e.fixedId,by:f.by||e.by,byName:f.byName||e.byName,at:f.at||e.at||Date.now(),ts:Date.now()}; });
+      await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
+      toast(recs.length+' gastos fijos agregados');
+    }catch(e){ toast('No se pudieron repetir los gastos fijos'); }
+    render();
   }
   function copyBanner(){
     if(isDemo()) return '';
@@ -591,7 +616,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   function secFijos(list){
     const demo=isDemo(), F=fixedList(), cur=today();
-    let h='<section><p class="note">Se agregan solos a este mes cuando empieza. Toca uno para cambiar su monto solo en '+esc(monthName(S.month))+'.</p></section>';
+    let h=fixedBanner()+'<section><p class="note">Al empezar un mes te pregunto si quieres repetir los del mes pasado. Toca uno para cambiar su monto solo en '+esc(monthName(S.month))+'.</p></section>';
     if(!list.length){
       h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses, como arriendo, luz o internet.</p></div>'
         : ensuring ? '<p class="empty">Agregando los gastos fijos del mes…</p>'
@@ -743,7 +768,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
         await store.put(rec);
         if(t) await applyFixedChange(rec);
         closeSheet(); S.tab='egresos'; S.eg='fijos'; render(); toast(t?'Cambios guardados':'Gasto fijo agregado a este mes');
-        ensureAuto();
+        if(!t){ const m=S.month>today()?S.month:today(); const eid=fxId(rec.id,m);
+          if(!S.entries.some(x=>x.id===eid)) await store.put({id:eid,kind:'egreso',month:m,cat:rec.cat,name:rec.name,amount:rec.amount,fixedId:rec.id,by:rec.by,byName:rec.byName,at:rec.at||Date.now(),ts:Date.now()}); }
       }catch(e){ err.textContent='No se pudo guardar. Revisa tus permisos o intenta de nuevo.'; }
     });
     const del=$('#xDel');
@@ -820,6 +846,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
+    else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
+    else if(a==='repno'){ S.skipFx=S.month; render(); }
     else if(a==='copy'){ el.disabled=true; copyPrev(); }
   });
 
