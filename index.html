@@ -438,22 +438,24 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   /* gastos fijos del mes anterior que aún no están en el mes que se ve */
   function pendingFixed(){
     if(isDemo()) return [];
-    const prev=shiftMonth(S.month,-1);
     const have=new Set(S.entries.filter(e=>e.fixedId&&e.month===S.month).map(e=>e.fixedId));
-    const seen=new Set();
-    return S.entries.filter(e=>e.month===prev && e.fixedId && !e.deleted && !have.has(e.fixedId) && S.fixed.some(f=>f.id===e.fixedId) && !seen.has(e.fixedId) && seen.add(e.fixedId));
+    const prev=shiftMonth(S.month,-1);
+    /* 1) gastos fijos guardados (plantillas) vigentes en este mes que aún no están */
+    const out=S.fixed.filter(f=>(f.from||'0000-00')<=S.month && !have.has(f.id)).map(f=>({fixedId:f.id,name:f.name,tpl:f}));
+    /* 2) gastos fijos del mes anterior cuya plantilla ya no existe: se copian tal cual */
+    S.entries.filter(e=>e.month===prev && e.fixedId && !e.deleted && !have.has(e.fixedId) && !S.fixed.some(f=>f.id===e.fixedId)).forEach(e=>out.push({fixedId:e.fixedId,name:e.name,orphan:e}));
+    return out;
   }
   function fixedBanner(){
     if(S.skipFx===S.month) return '';
     const L=pendingFixed(); if(!L.length) return '';
-    const prev=shiftMonth(S.month,-1);
-    return `<div class="banner"><p><b>¿Repetir los gastos fijos de ${esc(monthName(prev))}?</b><br>Hay ${L.length} sin agregar en ${esc(monthName(S.month))}: ${esc(L.slice(0,4).map(e=>e.name).join(', '))}${L.length>4?'…':''}.</p><div class="actions"><button type="button" class="btn" data-action="repfx">Sí, repetir</button><button type="button" class="btn ghost" data-action="repno">Ahora no</button></div></div>`;
+    return `<div class="banner"><p><b>¿Agregar los gastos fijos de ${esc(monthName(S.month))}?</b><br>Hay ${L.length} sin agregar en ${esc(monthName(S.month))}: ${esc(L.slice(0,4).map(e=>e.name).join(', '))}${L.length>4?'…':''}.</p><div class="actions"><button type="button" class="btn" data-action="repfx">Sí, repetir</button><button type="button" class="btn ghost" data-action="repno">Ahora no</button></div></div>`;
   }
   async function repeatFixed(){
     const L=pendingFixed(); if(!L.length) return;
     try{
-      const recs=L.map(e=>{ const f=S.fixed.find(x=>x.id===e.fixedId);
-        return {id:fxId(e.fixedId,S.month),kind:'egreso',month:S.month,cat:f.cat,name:f.name,amount:f.amount,fixedId:e.fixedId,by:f.by||e.by,byName:f.byName||e.byName,at:f.at||e.at||Date.now(),ts:Date.now()}; });
+      const recs=L.map(e=>{ const f=e.tpl||e.orphan;
+        return {id:fxId(e.fixedId,S.month),kind:'egreso',month:S.month,cat:f.cat,name:f.name,amount:f.amount,fixedId:e.fixedId,by:f.by,byName:f.byName,at:f.at||Date.now(),ts:Date.now()}; });
       await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
       toast(recs.length+' gastos fijos agregados');
     }catch(e){ toast('No se pudieron repetir los gastos fijos'); }
