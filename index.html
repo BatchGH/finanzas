@@ -432,7 +432,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       P.sort((a,b)=>(a.ts||0)-(b.ts||0));
       if(!(snap.metadata&&snap.metadata.fromCache)) S.synced=true;
       const cfgDoc=snap.docs.find(d=>d.id==='_cfg'); if(cfgDoc && (cfgDoc.data()||{}).fixedSeeded) S.cfgSeeded=true;
-      S.persons=P; S.entries=E; S.fixed=F; S.ready=true; ensureMe().then(()=>{ render(); return ensureDefaults(); });
+      S.persons=P; S.entries=E; S.fixed=F; S.ready=true; ensureMe().then(()=>{ render(); return ensureDefaults(); }).then(()=>dedupePersons());
     },e=>{ S.ready=true; render(); toast(e&&e.code==='permission-denied'?'Este correo no tiene acceso a los datos del hogar':'No se pudo conectar con la base de datos'); });
   }
   async function initStore(){
@@ -586,6 +586,26 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   /* gastos fijos de partida (una sola vez); después los cambias o quitas a gusto */
   const DEFAULT_FIJOS=[['Arriendo','arriendo'],['Luz','luz'],['Agua','agua'],['Gastos comunes','gastos_comunes']];
+  /* personas repetidas (mismo nombre con o sin tilde): se deja la que tiene correo y se pasan sus movimientos */
+  async function dedupePersons(){
+    if(!isAdmin() || !S.synced || !store || S.deduping) return;
+    const groups={};
+    S.persons.forEach(p=>{ const k=norm(p.name||'').trim(); (groups[k]=groups[k]||[]).push(p); });
+    const dups=Object.values(groups).filter(g=>g.length>1);
+    if(!dups.length) return;
+    S.deduping=true;
+    try{
+      for(const g of dups){
+        const keep=g.find(p=>p.email)||g.find(p=>/[\u00C0-\u017F]/.test(p.name||''))||g[0];
+        for(const o of g){
+          if(o.id===keep.id) continue;
+          for(const e of S.entries.filter(x=>x.person===o.id)) await store.put(Object.assign({},e,{person:keep.id}));
+          await store.del(o.id);
+        }
+      }
+    }catch(e){}
+    S.deduping=false;
+  }
   async function ensureDefaults(){
     if(!S.synced || S.cfgSeeded || !store || !store.putCfg) return;
     S.cfgSeeded=true;
@@ -698,7 +718,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   async function ensureMe(){
     if(!S.me || !store) return;
-    const mine=S.persons.find(p=>p.email===S.me.email) || S.persons.find(p=>(p.name||'').toLowerCase()===S.me.name.toLowerCase());
+    const mine=S.persons.find(p=>p.email===S.me.email) || S.persons.find(p=>norm(p.name||'').trim()===norm(S.me.name).trim());
     if(mine){ S.me.pid=mine.id; if(mine.email!==S.me.email){ try{ await store.put(Object.assign({},mine,{email:S.me.email})); }catch(e){} } return; }
     const pid='p_u_'+slug(S.me.email); S.me.pid=pid;
     try{ await store.put({id:pid,name:S.me.name,email:S.me.email,ts:Date.now()}); }catch(e){}
