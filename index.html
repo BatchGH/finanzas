@@ -227,21 +227,70 @@ h2{font:700 13px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;c
   color-scheme:dark;
 }
 /* secciones de egresos con el color de su categoría */
-.catsec{--c:var(--k-otros);background:color-mix(in srgb,var(--c) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:18px;padding:10px 10px 8px;margin:0 0 14px}
+.catsec{--c:var(--k-otros);background:var(--surface);background:color-mix(in srgb,var(--c) 16%,var(--surface));border:1px solid var(--line);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:18px;padding:10px 10px 8px;margin:0 0 14px}
 .catsec .grp{margin:0 6px 8px;align-items:center}
-.catsec .grp b{display:flex;align-items:center;gap:8px;color:color-mix(in srgb,var(--c) 45%,var(--ink));font-size:13px}
+.catsec .grp b{display:flex;align-items:center;gap:8px;color:var(--ink-2);color:color-mix(in srgb,var(--c) 45%,var(--ink));font-size:13px}
 .catsec .grp .cico{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--c);font-size:15px;line-height:1}
-.catsec .rows{background:var(--surface);border-color:color-mix(in srgb,var(--c) 30%,transparent);margin:0}
+.catsec .rows{background:var(--surface);border-color:var(--line);border-color:color-mix(in srgb,var(--c) 30%,transparent);margin:0}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c,var(--k-otros))}
 .tab[aria-current="page"]::after{background:var(--accent)}
 body{background:var(--bg)}
+
+/* ---- mejoras: selector de mes, filtros, pagos, toques ---- */
+.month .mlabel{min-width:118px;height:36px;padding:0 8px;border:0;border-radius:10px;background:none;text-align:center;font-weight:600;font-size:15px;text-transform:capitalize;color:var(--ink);width:auto;line-height:1.2}
+.month .mlabel::after{content:"▾";font-size:11px;margin-left:5px;color:var(--muted)}
+.leg li.tap,.kv li.tap{padding:0}
+.legbtn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;background:none;text-align:left;min-height:44px}
+.legbtn .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legbtn:hover{background:var(--accent-soft)}
+.chev{color:var(--muted);font-size:18px;line-height:1;flex:none}
+.amt.off{opacity:.5;text-decoration:line-through}
+.amt.off2{opacity:.55}
+.fchips{margin-top:-10px}
+.fchips .chip{padding:6px 12px;font-size:13.5px}
+.chip .cnt{font:500 12px var(--f-mono);opacity:.75;margin-left:2px}
+.deltas{margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.delta{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--line);color:var(--ink-2)}
+.delta.good{background:var(--pos-soft);color:var(--pos)}
+.delta.bad{background:var(--neg-soft);color:var(--neg)}
+.okline{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:var(--pos-soft);color:var(--pos);font-weight:600;font-size:14px}
+.hintrow{margin-top:12px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border:1px dashed var(--accent);border-radius:12px;background:var(--accent-soft);text-align:left;color:var(--ink)}
+.hintrow span:first-child{display:flex;flex-direction:column;min-width:0}
+.hintrow small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linkbtn.more{margin-top:8px}
+.note.tip{margin-top:8px;font-size:12.5px}
+.btn.wide{width:100%}
+.dot.big{width:14px;height:14px;margin-right:8px;vertical-align:-1px}
+li.strow.static .row{flex:1;min-width:0}
+li.strow.static .row:hover{background:none}
+.yrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.yrow b{font:700 20px var(--f-display)}
+.ybtn{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:none;font-size:22px;line-height:1;color:var(--ink-2)}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcell{position:relative;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600;text-transform:capitalize;color:var(--ink-2)}
+.mcell i{position:absolute;left:50%;bottom:7px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)}
+.mcell.now{border-color:var(--accent)}
+.mcell.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.mcell.on i{background:var(--accent-ink)}
+button{-webkit-tap-highlight-color:transparent}
+.row,.chip,.btn,.fab,.pill,.mcell,.ybtn,.legbtn,.hintrow,.segs button{transition:transform .08s ease,background-color .15s ease}
+.row:active,.legbtn:active,.hintrow:active{transform:scale(.985)}
+.chip:active,.btn:active,.fab:active,.pill:active,.mcell:active,.ybtn:active,.segs button:active{transform:scale(.96)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sheetUp{from{transform:translateY(28px);opacity:.5}to{transform:none;opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#view.anim>*{animation:fadeUp .22s ease both}
+.sheet-back{animation:fadeIn .15s ease}
+.sheet{animation:sheetUp .2s ease}
+.sheet:focus{outline:none}
+@media (prefers-reduced-motion:reduce){#view.anim>*,.sheet,.sheet-back{animation:none}.row,.chip,.btn,.fab,.pill,.mcell,.ybtn,.legbtn,.hintrow,.segs button{transition:none}}
 </style>
 <header class="top">
   <div class="wrap">
     <h1>Mis Finanzas</h1>
     <div class="month">
       <button type="button" data-action="prev" aria-label="Mes anterior">‹</button>
-      <span id="monthLabel"></span>
+      <button type="button" class="mlabel" id="monthLabel" data-action="pick" aria-label="Elegir mes"></button>
       <button type="button" data-action="next" aria-label="Mes siguiente">›</button>
     </div>
   </div>
@@ -290,7 +339,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   const num = v => parseInt(String(v).replace(/\D/g,''),10)||0;
   const sum = l => l.reduce((a,e)=>a+e.amount,0);
 
-  const S = { persons:[], entries:[], fixed:[], month:today(), tab:'resumen', eg:'fijos', period:'mes', ready:false, mode:'local' };
+  const S = { persons:[], entries:[], fixed:[], month:today(), tab:'resumen', eg:'fijos', period:'mes', stf:'todos', ready:false, mode:'local' };
   let store = null;
   const DEMO = makeDemo();
 
@@ -437,7 +486,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   async function initStore(){
     const cfg=window.FIREBASE_CONFIG;
-    if(!window.firebase || !cfg || !cfg.apiKey){ store=localStore(); S.ready=true; render(); ensureAuto(); return; }
+    if(!window.firebase || !cfg || !cfg.apiKey){ store=localStore(); S.ready=true; render(); return; }
     firebase.initializeApp(cfg);
     auth=firebase.auth(); db=firebase.firestore();
     try{ db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch(e){}
@@ -449,38 +498,6 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   window.__logout=()=>auth&&auth.signOut();
 
-  /* ---------- gastos fijos: asignación automática ----------
-     Se crean en cada mes desde que se definió el gasto hasta el mes que se está viendo
-     (o el mes actual si es posterior), con un tope de 12 meses hacia adelante. */
-  let ensuring=false, again=false;
-  async function ensureAuto(){
-    return; /* ya no se asignan solos: se ofrece "Repetir gastos fijos" al empezar el mes */
-    if(!S.ready || !store || isDemo() || !S.synced) return;
-    if(ensuring){ again=true; return; }
-    ensuring=true; render();
-    try{
-      do{
-        again=false;
-        const cur=today(), horizon=shiftMonth(cur,12);
-        const last = S.month>cur ? (S.month<horizon?S.month:horizon) : cur;
-        const have=new Set(S.entries.filter(e=>e.fixedId).map(e=>e.id));
-        const todo=[];
-        S.fixed.forEach(f=>{
-          for(let m=f.from||cur; m<=last; m=shiftMonth(m,1)){
-            const id=fxId(f.id,m);
-            if(!have.has(id)) todo.push({id,kind:'egreso',month:m,cat:f.cat,name:f.name,amount:f.amount,fixedId:f.id,by:f.by,byName:f.byName,at:f.at||Date.now(),ts:Date.now()});
-          }
-        });
-        if(todo.length){
-          const w = store.putMany ? store.putMany(todo) : Promise.all(todo.map(r=>store.put(r)));
-          await Promise.race([w, new Promise(res=>setTimeout(res,8000))]);
-          w.catch(()=>{});
-        }
-      }while(again && false);
-    }catch(e){ toast('No se pudieron agregar los gastos fijos'); }
-    ensuring=false; render();
-    if(again){ again=false; setTimeout(ensureAuto,50); }
-  }
   async function applyFixedChange(f){
     const cur=today();
     const list=S.entries.filter(e=>e.fixedId===f.id && !e.edited && !e.deleted && e.month>=cur);
@@ -491,74 +508,6 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   function demoBanner(){
     if(!isDemo()) return '';
     return '<div class="banner"><p><b>Datos de ejemplo.</b> Desaparecen cuando agregues tu primera persona o tu primer gasto.</p><button type="button" class="btn" data-action="newperson">Agregar persona</button></div>';
-  }
-  /* gastos fijos del mes anterior que aún no están en el mes que se ve */
-  function pendingFixed(){
-    if(isDemo()) return [];
-    const have=new Set(S.entries.filter(e=>e.fixedId&&e.month===S.month).map(e=>e.fixedId));
-    const prev=shiftMonth(S.month,-1);
-    /* 1) gastos fijos guardados (plantillas) vigentes en este mes que aún no están */
-    const out=S.fixed.filter(f=>(f.from||'0000-00')<=S.month && !have.has(f.id)).map(f=>({fixedId:f.id,name:f.name,tpl:f}));
-    /* 2) gastos fijos del mes anterior cuya plantilla ya no existe: se copian tal cual */
-    S.entries.filter(e=>e.month===prev && e.fixedId && !e.deleted && !have.has(e.fixedId) && !S.fixed.some(f=>f.id===e.fixedId)).forEach(e=>out.push({fixedId:e.fixedId,name:e.name,orphan:e}));
-    return out;
-  }
-  function fixedBanner(){
-    if(S.skipFx===S.month) return '';
-    const L=pendingFixed(); if(!L.length) return '';
-    return `<div class="banner"><p><b>¿Agregar los gastos fijos de ${esc(monthName(S.month))}?</b><br>Hay ${L.length} sin agregar en ${esc(monthName(S.month))}: ${esc(L.slice(0,4).map(e=>e.name).join(', '))}${L.length>4?'…':''}.</p><div class="actions"><button type="button" class="btn" data-action="repfx">Sí, repetir</button><button type="button" class="btn ghost" data-action="repno">Ahora no</button></div></div>`;
-  }
-  async function repeatFixed(){
-    const L=pendingFixed(); if(!L.length) return;
-    try{
-      const recs=L.map(e=>{ const f=e.tpl||e.orphan;
-        return {id:fxId(e.fixedId,S.month),kind:'egreso',month:S.month,cat:f.cat,name:f.name,amount:f.amount,fixedId:e.fixedId,by:f.by,byName:f.byName,at:f.at||Date.now(),ts:Date.now()}; });
-      await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
-      toast(recs.length+' gastos fijos agregados');
-    }catch(e){ toast('No se pudieron repetir los gastos fijos'); }
-    render();
-  }
-  /* traer a mano gastos del mes anterior */
-  function prevEgresos(){
-    const prev=shiftMonth(S.month,-1);
-    const here=S.entries.filter(e=>e.kind==='egreso'&&e.month===S.month&&!e.deleted);
-    return S.entries.filter(e=>e.kind==='egreso'&&e.month===prev&&!e.deleted&&e.amount>0)
-      .filter(e=>!here.some(h=>(e.fixedId&&h.fixedId===e.fixedId)||(h.name===e.name&&h.cat===e.cat)))
-      .sort((a,b)=>(b.fixedId?1:0)-(a.fixedId?1:0)||b.amount-a.amount);
-  }
-  function openBring(){
-    const L=prevEgresos(); if(!L.length){ toast('No hay gastos pendientes del mes anterior'); return; }
-    lastFocus=document.activeElement;
-    const prev=shiftMonth(S.month,-1), fijTab=S.eg==='fijos';
-    sheetBase(`<h3 id="sTitle">Traer de ${esc(monthName(prev))}</h3>
-      <p class="note">Marca los gastos que quieres agregar a ${esc(monthName(S.month))}.</p>
-      <ul class="rows">${L.map((e,i)=>`<li><label class="row" style="cursor:pointer"><input type="checkbox" class="bk" data-i="${i}" ${(e.fixedId||fijTab)?'checked':''} style="margin-right:10px"><span class="row-main"><b>${esc(e.name)}</b><small>${esc(e.cat)}${e.fixedId?' · fijo':''}</small></span><span class="amt">${money(e.amount)}</span></label></li>`).join('')}</ul>
-      <label class="note" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="bkFix" ${fijTab?'checked':''}> Guardar como gastos fijos (se repiten cada mes)</label>
-      <p class="err" id="bkErr" role="alert"></p>
-      <div class="actions"><button type="button" class="btn" id="bkGo">Agregar seleccionados</button><button type="button" class="btn ghost" id="bkCancel">Cancelar</button></div>`);
-    $('#bkCancel').addEventListener('click',closeSheet);
-    $('#bkGo').addEventListener('click',async()=>{
-      const sel=[...document.querySelectorAll('.bk')].filter(c=>c.checked).map(c=>L[+c.dataset.i]);
-      if(!sel.length){ $('#bkErr').textContent='Marca al menos uno.'; return; }
-      const asFix=$('#bkFix').checked, recs=[];
-      try{
-        for(const e of sel){
-          if(asFix || e.fixedId){
-            let fid=e.fixedId;
-            if(!fid || !S.fixed.some(f=>f.id===fid)){
-              fid=uid('f');
-              await store.put(stamp({id:fid,name:e.name,amount:e.amount,cat:e.cat,from:S.month,ts:Date.now()},true));
-            }
-            const f=S.fixed.find(x=>x.id===fid)||{};
-            recs.push(stamp({id:fxId(fid,S.month),kind:'egreso',month:S.month,cat:f.cat||e.cat,name:f.name||e.name,amount:f.amount||e.amount,fixedId:fid,ts:Date.now()},true));
-          } else {
-            recs.push(stamp({id:uid('g'),kind:'egreso',month:S.month,cat:e.cat,name:e.name,amount:e.amount,ts:Date.now()},true));
-          }
-        }
-        await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
-        closeSheet(); render(); toast(recs.length+' gastos agregados');
-      }catch(err){ $('#bkErr').textContent='No se pudo agregar. Intenta de nuevo.'; }
-    });
   }
   /* completar un gasto fijo del mes (aparece en $0 por defecto) */
   function openFill(fid){
@@ -648,13 +597,14 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       }catch(e){ $('#mErr').textContent='No se pudo borrar todo. Intenta de nuevo.'; }
     });
   }
+  const canTouch = e => isAdmin() || e.person===meId();
   function copyBanner(){
     if(isDemo()) return '';
-    if(S.entries.some(e=>e.month===S.month && e.kind==='ingreso' && !e.deleted)) return '';
+    if(S.entries.some(e=>e.month===S.month && e.kind==='ingreso' && !e.deleted && canTouch(e))) return '';
     const prev=shiftMonth(S.month,-1);
-    const n=S.entries.filter(e=>e.month===prev && e.kind==='ingreso' && !e.deleted).length;
+    const n=S.entries.filter(e=>e.month===prev && e.kind==='ingreso' && !e.deleted && canTouch(e)).length;
     if(!n) return '';
-    return `<div class="banner"><p>Este mes aún no tiene ingresos. Puedo traer los ${n} de ${esc(monthLabel(prev))}.</p><button type="button" class="btn" data-action="copy">Traer de ${esc(monthLabel(prev))}</button></div>`;
+    return `<div class="banner"><p>${isAdmin()?'Este mes aún no tiene ingresos.':'Este mes aún no tiene ingresos tuyos.'} Puedo traer ${n===1?'el':'los '+n} de ${esc(monthLabel(prev))}.</p><button type="button" class="btn" data-action="copy">Traer de ${esc(monthLabel(prev))}</button></div>`;
   }
   function sumLine(items){
     return `<dl class="split" style="--n:${items.length}">`+items.map(i=>`<div><dt>${i[0]}</dt><dd class="${i[2]||''}">${money(i[1])}</dd></div>`).join('')+'</dl>';
@@ -695,7 +645,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       off+=len;
     });
     svg+=`<text class="d-big" x="60" y="62">$${COMPACT.format(total)}</text><text class="d-sub" x="60" y="73">total</text></svg>`;
-    const leg='<ul class="leg">'+cats.map(c=>`<li><i class="sw" style="background:${colorOf(kind,c)}"></i><span class="nm">${esc(c)}</span><span class="mono">${money(map[c])}</span><span class="pc">${Math.round(map[c]/total*100)}%</span></li>`).join('')+'</ul>';
+    const leg='<ul class="leg">'+cats.map(c=>`<li class="tap"><button type="button" class="legbtn" data-action="cat" data-kind="${kind}" data-cat="${esc(c)}" aria-label="Ver movimientos de ${esc(c)}"><i class="sw" style="background:${colorOf(kind,c)}"></i><span class="nm">${esc(c)}</span><span class="mono">${money(map[c])}</span><span class="pc">${Math.round(map[c]/total*100)}%</span><span class="chev" aria-hidden="true">›</span></button></li>`).join('')+'</ul>';
     return svg+leg;
   }
   /* ---- usuario fijo: cada correo tiene su persona ---- */
@@ -725,8 +675,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   function entryRows(items,sub){
     const demo=isDemo();
-    return '<ul class="rows">'+items.map(e=>{ const st=stOf(e);
-      return `<li class="strow"><button type="button" class="row" data-action="${demo?'demo':'edit'}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name)}</b>${sub(e)?`<small>${sub(e)}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt" style="${st==='aplazado'?'opacity:.5;text-decoration:line-through':''}">${money(e.amount)}</span></button><button type="button" class="pill st-${st}" data-action="${demo?'demo':'st'}" data-id="${esc(e.id)}" aria-label="Estado: ${ST_LABEL[st]}. Toca para cambiar">${ST_LABEL[st]}</button></li>`; }).join('')+'</ul>';
+    return '<ul class="rows">'+items.map(e=>{ const st=stOf(e), s1=sub(e);
+      return `<li class="strow"><button type="button" class="row" data-action="${demo?'demo':'edit'}" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(e.name)}</b>${s1?`<small>${s1}</small>`:''}${e.movedTo?`<small>Pasado a ${esc(monthName(e.movedTo))}</small>`:''}${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt${st==='aplazado'?' off':''}">${money(e.amount)}</span></button><button type="button" class="pill st-${st}" data-action="${demo?'demo':'st'}" data-id="${esc(e.id)}" aria-label="Estado: ${ST_LABEL[st]}. Toca para cambiar">${ST_LABEL[st]}</button></li>`; }).join('')+'</ul>';
   }
   function catIcon(c){
     const n=norm(c);
@@ -739,6 +689,41 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       .map(g=>`<section class="catsec" style="--c:${colorOf('egreso',g.c)}"><p class="grp"><b><span class="cico" aria-hidden="true">${catIcon(g.c)}</span>${esc(g.c)}</b><span class="mono">${money(sum(counted(g.items)))}</span></p>${entryRows(g.items,sub)}</section>`).join('');
   }
 
+  /* gastos fijos guardados que aún no tienen monto en el mes que se ve */
+  function toFill(){
+    if(isDemo()) return [];
+    return S.fixed.filter(f=>(f.from||'0000-00')<=S.month && !S.entries.some(e=>e.fixedId===f.id && e.month===S.month));
+  }
+  /* variación contra el mes anterior */
+  function deltaChip(label,cur,prev,upIsGood,prevName){
+    if(!prev) return '';
+    const pct=Math.round((cur-prev)/prev*100);
+    if(pct===0) return `<span class="delta">${label}: igual que ${esc(prevName)}</span>`;
+    const up=pct>0, good=up===upIsGood;
+    return `<span class="delta ${good?'good':'bad'}">${label} ${up?'▲':'▼'} ${Math.abs(pct)}% vs ${esc(prevName)}</span>`;
+  }
+  /* pagos del mes: cuánto va pagado y qué falta */
+  function paySection(){
+    const L=expenses(S.month), fill=toFill();
+    if(!L.length && !fill.length) return '';
+    const paid=sum(L.filter(e=>stOf(e)==='pagado')), pendL=L.filter(e=>stOf(e)==='pendiente').sort((a,b)=>b.amount-a.amount), pend=sum(pendL), due=paid+pend;
+    let h='<section><h2>Pagos de '+esc(monthName(S.month))+'</h2>';
+    if(due>0){
+      const pct=Math.round(paid/due*100);
+      h+=`<div class="progress" style="margin-top:0"><p><span>Pagado ${money(paid)} de ${money(due)}</span><span class="hint">${pend>0?'Falta '+money(pend):'Todo pagado'}</span></p><div class="track"><div class="fill good" style="width:${pct}%"></div></div></div>`;
+    }
+    if(pendL.length){
+      h+='<p class="grp" style="margin-top:14px"><b>Pendientes de pago</b><span class="mono">'+pendL.length+'</span></p>'+entryRows(pendL.slice(0,5),e=>esc(e.cat));
+      if(pendL.length>5) h+=`<button type="button" class="linkbtn more" data-action="gopend">Ver los ${pendL.length} pendientes en Egresos</button>`;
+    } else if(due>0){
+      h+='<p class="okline">No queda nada pendiente este mes.</p>';
+    }
+    if(fill.length){
+      h+=`<button type="button" class="hintrow" data-action="gofijos"><span><b>${fill.length===1?'1 gasto fijo por completar':fill.length+' gastos fijos por completar'}</b><small>${esc(fill.slice(0,3).map(f=>f.name).join(', '))}${fill.length>3?'…':''}</small></span><span class="chev" aria-hidden="true">›</span></button>`;
+    }
+    return h+'</section>';
+  }
+
   /* ---------- vista: Resumen ---------- */
   function viewResumen(){
     const year=S.month.slice(0,4), byYear=S.period==='anio';
@@ -747,37 +732,101 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const label=byYear?'Año '+year:monthLabel(S.month);
     let h=demoBanner();
     h+=`<div class="chips" role="group" aria-label="Período"><button type="button" class="chip" data-action="period" data-p="mes" aria-pressed="${!byYear}" style="text-transform:capitalize">${esc(monthLabel(S.month))}</button><button type="button" class="chip" data-action="period" data-p="anio" aria-pressed="${byYear}">Año ${year}</button></div>`;
-    const inc=sum(I), exp=sum(G), bal=inc-exp;
-    if(!I.length && !G.length){
-      return h+'<p class="empty">Sin registros en '+esc(label)+'.<br>Agrega ingresos y egresos para ver el resumen.</p>';
+    const inc=sum(I), exp=sum(G), bal=inc-exp, any=I.length||G.length;
+    if(!any){
+      h+='<p class="empty">Sin registros en '+esc(label)+'.<br>Agrega ingresos y egresos para ver el resumen.</p>';
+    } else {
+      h+=`<section><p class="eyebrow">Balance · ${esc(label)}</p><p class="big${bal<0?' neg':' pos'}">${money(bal)}</p>`+sumLine([['Ingresos',inc,'pos'],['Egresos',exp]]);
+      if(inc>0){
+        const pct=exp/inc*100, cls=pct>100?'bad':(pct>=85?'warn':'');
+        h+=`<div class="progress"><p><span>Gastas el ${Math.round(pct)}% de lo que ingresa</span><span class="hint">${bal>=0?'Sobran '+money(bal):'Faltan '+money(-bal)}</span></p><div class="track"><div class="fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div></div>`;
+      } else if(exp>0){
+        h+='<p class="note" style="margin-top:14px">Hay egresos pero no ingresos registrados en este período.</p>';
+      }
+      if(!byYear){
+        const pm=shiftMonth(S.month,-1), pn=monthName(pm);
+        const d=deltaChip('Ingresos',inc,sum(incomes(pm)),true,pn)+deltaChip('Egresos',exp,sum(counted(expenses(pm))),false,pn);
+        if(d) h+='<p class="deltas">'+d+'</p>';
+      }
+      h+='</section>';
     }
-    h+=`<section><p class="eyebrow">Balance · ${esc(label)}</p><p class="big${bal<0?' neg':' pos'}">${money(bal)}</p>`+sumLine([['Ingresos',inc,'pos'],['Egresos',exp]]);
-    if(inc>0){
-      const pct=exp/inc*100, cls=pct>100?'bad':(pct>=85?'warn':'');
-      h+=`<div class="progress"><p><span>Gastas el ${Math.round(pct)}% de lo que ingresa</span><span class="hint">${bal>=0?'Sobran '+money(bal):'Faltan '+money(-bal)}</span></p><div class="track"><div class="fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div></div>`;
-    } else if(exp>0){
-      h+='<p class="note" style="margin-top:14px">Hay egresos pero no ingresos registrados en este período.</p>';
+    if(!byYear) h+=paySection();
+    if(any){
+      if(exp>0){
+        const T=byType(G), parts=[['Gastos fijos',T.fijos,1],['Gastos variables',T.variables,2]];
+        h+='<section><h2>Egresos por tipo</h2><div class="stack" role="img" aria-label="Egresos por tipo">'+parts.filter(p=>sum(p[1])>0).map(p=>`<i style="width:${sum(p[1])/exp*100}%;background:var(--t${p[2]})"></i>`).join('')+'</div>'
+          +'<ul class="leg">'+parts.map(p=>`<li><i class="sw" style="background:var(--t${p[2]})"></i><span class="nm">${p[0]}</span><span class="mono">${money(sum(p[1]))}</span><span class="pc">${Math.round(sum(p[1])/exp*100)}%</span></li>`).join('')+'</ul></section>';
+      }
+      if(inc>0 && persons().length>1){
+        h+='<section><h2>Aporte de cada persona</h2><ul class="kv">'+persons().map(p=>{ const v=sum(I.filter(e=>e.person===p.id)); return `<li><span>${esc(p.name)}<small>${Math.round(v/inc*100)}% de los ingresos</small></span><span class="mono">${money(v)}</span></li>`; }).join('')+'</ul></section>';
+      }
+      h+='<section><h2>Ingresos por categoría</h2>'+(I.length?donut('ingreso',I)+'<p class="note tip">Toca una categoría para ver sus movimientos.</p>':'<p class="empty">Sin ingresos.</p>')+'</section>';
+      h+='<section><h2>Egresos por categoría</h2>'+(G.length?donut('egreso',G):'<p class="empty">Sin egresos.</p>')+'</section>';
     }
-    h+='</section>';
-
-    if(exp>0){
-      const T=byType(G), parts=[['Gastos fijos',T.fijos,1],['Gastos variables',T.variables,2]];
-      h+='<section><h2>Egresos por tipo</h2><div class="stack" role="img" aria-label="Egresos por tipo">'+parts.filter(p=>sum(p[1])>0).map(p=>`<i style="width:${sum(p[1])/exp*100}%;background:var(--t${p[2]})"></i>`).join('')+'</div>'
-        +'<ul class="leg">'+parts.map(p=>`<li><i class="sw" style="background:var(--t${p[2]})"></i><span class="nm">${p[0]}</span><span class="mono">${money(sum(p[1]))}</span><span class="pc">${Math.round(sum(p[1])/exp*100)}%</span></li>`).join('')+'</ul></section>';
-    }
-    if(inc>0 && persons().length>1){
-      h+='<section><h2>Aporte de cada persona</h2><ul class="kv">'+persons().map(p=>{ const v=sum(I.filter(e=>e.person===p.id)); return `<li><span>${esc(p.name)}<small>${Math.round(v/inc*100)}% de los ingresos</small></span><span class="mono">${money(v)}</span></li>`; }).join('')+'</ul></section>';
-    }
-    h+='<section><h2>Ingresos por categoría</h2>'+(I.length?donut('ingreso',I):'<p class="empty">Sin ingresos.</p>')+'</section>';
-    h+='<section><h2>Egresos por categoría</h2>'+(G.length?donut('egreso',G):'<p class="empty">Sin egresos.</p>')+'</section>';
     const t=trendSVG();
     if(t){
       h+='<section><h2>Últimos 6 meses</h2>'+t.svg+'<ul class="kv" style="margin-top:14px">'
-        +t.vals.slice().reverse().map(v=>{ const b=v.i-v.g; return `<li><span style="text-transform:capitalize">${esc(monthLabel(v.k))}</span><span class="mono ${b<0?'neg':'pos'}">${v.i||v.g?money(b):'—'}</span></li>`; }).join('')+'</ul></section>';
+        +t.vals.slice().reverse().map(v=>{ const b=v.i-v.g; return `<li class="tap"><button type="button" class="legbtn" data-action="goto" data-m="${v.k}" aria-label="Ir a ${esc(monthLabel(v.k))}"><span class="nm" style="text-transform:capitalize">${esc(monthLabel(v.k))}</span><span class="mono ${b<0?'neg':'pos'}">${v.i||v.g?money(b):'—'}</span><span class="chev" aria-hidden="true">›</span></button></li>`; }).join('')+'</ul></section>';
     }
-    if(S.mode==='db' && isAdmin()) h+='<section><button type="button" class="btn ghost" data-action="manage">Administrar datos (borrar mes o empezar de cero)</button></section>';
+    if(any && !isDemo()) h+=`<section><button type="button" class="btn ghost wide" data-action="export">Exportar ${esc(label)} a Excel</button></section>`;
+    if(S.mode==='db' && isAdmin()) h+='<section><button type="button" class="btn ghost wide" data-action="manage">Administrar datos (borrar mes o empezar de cero)</button></section>';
     h+='<p class="note">'+(S.mode==='db'?'Datos compartidos del hogar. Sesión: '+esc(S.user||'')+(isAdmin()?' (administrador)':'')+' · <button type="button" class="linkbtn" data-action="logout">Cerrar sesión</button>':'Tus datos se guardan solo en este navegador.')+'</p>';
     return h;
+  }
+  /* movimientos de una categoría en el período que se está viendo */
+  function openCat(kind,cat){
+    const year=S.month.slice(0,4), byYear=S.period==='anio';
+    const L=entries().filter(e=>e.kind===kind && e.cat===cat && (byYear?e.month.slice(0,4)===year:e.month===S.month))
+      .sort((a,b)=>a.month<b.month?1:a.month>b.month?-1:b.amount-a.amount);
+    if(!L.length) return;
+    lastFocus=document.activeElement;
+    const isI=kind==='ingreso', tot=sum(isI?L:counted(L));
+    const who=id=>{ const p=persons().find(x=>x.id===id); return p?p.name:''; };
+    sheetBase(`<h3 id="sTitle"><i class="dot big" style="--c:${colorOf(kind,cat)}"></i>${esc(cat)}</h3>
+      <p class="note">${isI?'Ingresos':'Egresos'} de ${esc(byYear?'el año '+year:monthLabel(S.month))} · <b class="mono">${money(tot)}</b></p>
+      <ul class="rows">${L.map(e=>{ const st=isI?'':stOf(e); const bits=[]; if(byYear) bits.push(monthName(e.month)); if(isI&&who(e.person)) bits.push(who(e.person)); if(!isI) bits.push(e.fixedId?'Fijo':'Variable');
+        return `<li class="strow static"><span class="row"><span class="row-main"><b>${esc(e.name||e.cat)}</b><small>${esc(bits.join(' · '))}</small>${byTag(e)?`<small class="by">${byTag(e)}</small>`:''}</span><span class="amt${isI?' ingreso':''}${st==='aplazado'?' off':''}">${isI?'+':''}${money(e.amount)}</span></span>${isI?'':`<span class="pill st-${st}">${ST_LABEL[st]}</span>`}</li>`; }).join('')}</ul>
+      <div class="actions"><button type="button" class="btn ghost" id="cClose">Cerrar</button></div>`);
+    $('#cClose').addEventListener('click',closeSheet);
+  }
+  /* selector de mes */
+  function openPicker(){
+    lastFocus=document.activeElement;
+    let y=Number(S.month.slice(0,4));
+    const go=k=>{ S.month=k; closeSheet(); safeRender(); window.scrollTo(0,0); };
+    const draw=()=>{
+      const has=new Set(entries().map(e=>e.month)), cur=today();
+      sheetBase(`<h3 id="sTitle">Ir a un mes</h3>
+        <div class="yrow"><button type="button" class="ybtn" id="yPrev" aria-label="Año anterior">‹</button><b>${y}</b><button type="button" class="ybtn" id="yNext" aria-label="Año siguiente">›</button></div>
+        <div class="mgrid">${MESES.map((m,i)=>{ const k=y+'-'+pad(i+1); return `<button type="button" class="mcell${k===S.month?' on':''}${k===cur?' now':''}" data-m="${k}" aria-label="${m} ${y}${has.has(k)?', con movimientos':''}"${k===S.month?' aria-current="true"':''}>${m.slice(0,3)}${has.has(k)?'<i aria-hidden="true"></i>':''}</button>`; }).join('')}</div>
+        <p class="note">El punto marca los meses que ya tienen movimientos.</p>
+        <div class="actions"><button type="button" class="btn" id="yToday">Ir a hoy · ${esc(monthLabel(cur))}</button><button type="button" class="btn ghost" id="yCancel">Cerrar</button></div>`);
+      $('#yPrev').addEventListener('click',()=>{ y--; draw(); });
+      $('#yNext').addEventListener('click',()=>{ y++; draw(); });
+      $('#yToday').addEventListener('click',()=>go(cur));
+      $('#yCancel').addEventListener('click',closeSheet);
+      document.querySelectorAll('.mcell').forEach(b=>b.addEventListener('click',()=>go(b.dataset.m)));
+    };
+    draw();
+  }
+  /* exportar a Excel (CSV con punto y coma, que Excel en español abre directo) */
+  function exportCsv(){
+    const year=S.month.slice(0,4), byYear=S.period==='anio';
+    const L=entries().filter(e=>byYear?e.month.slice(0,4)===year:e.month===S.month)
+      .sort((a,b)=>a.month<b.month?-1:a.month>b.month?1:(a.kind===b.kind?b.amount-a.amount:(a.kind==='ingreso'?-1:1)));
+    if(!L.length){ toast('No hay movimientos para exportar'); return; }
+    const who=id=>{ const p=S.persons.find(x=>x.id===id); return p?p.name:''; };
+    const cell=v=>{ let t=String(v==null?'':v); if(/^[=+\-@]/.test(t)) t="'"+t; return '"'+t.replace(/"/g,'""')+'"'; };
+    const rows=[['Mes','Tipo','Clase','Categoría','Descripción','Persona','Monto','Estado','Cargado por']];
+    L.forEach(e=>{ const isI=e.kind==='ingreso';
+      rows.push([e.month,isI?'Ingreso':'Egreso',isI?'':(e.fixedId?'Fijo':'Variable'),e.cat,e.name||'',isI?who(e.person):'',e.amount,isI?'':ST_LABEL[stOf(e)],e.byName||'']); });
+    const csv='﻿'+rows.map(r=>r.map((v,i)=>i===6&&typeof v==='number'?String(v):cell(v)).join(';')).join('\r\n');
+    try{
+      const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+      const a=document.createElement('a'); a.href=url; a.download='mis-finanzas-'+(byYear?year:S.month)+'.csv';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+      toast('Archivo listo: '+(L.length)+' movimientos');
+    }catch(e){ toast('No se pudo crear el archivo'); }
   }
 
   /* ---------- vista: Ingresos ---------- */
@@ -803,11 +852,19 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
 
   /* ---------- vista: Egresos (Fijos y Variables) ---------- */
   function viewEgresos(){
-    const L=expenses(S.month), T=byType(L);
+    const L=expenses(S.month), T=byType(L), cur=T[S.eg];
     let h=demoBanner();
     h+=`<section><p class="eyebrow">Egresos de ${esc(monthLabel(S.month))}</p><p class="big">${money(sum(counted(L)))}</p>`+stLine(L)+`</section>`;
     h+='<div class="segs" role="group" aria-label="Tipo de egreso">'+[['fijos','Fijos'],['variables','Variables']].map(p=>`<button type="button" data-action="eg" data-k="${p[0]}" aria-pressed="${S.eg===p[0]}">${p[1]}<small>${money(sum(counted(T[p[0]])))}</small></button>`).join('')+'</div>';
-    h+= S.eg==='fijos'?secFijos(T.fijos): secVariables(T.variables);
+    if(S.stf!=='todos' && !ST.includes(S.stf)) S.stf='todos';
+    if(cur.length){
+      const n=k=>cur.filter(e=>stOf(e)===k).length;
+      h+='<div class="chips fchips" role="group" aria-label="Filtrar por estado">'
+        +[['todos','Todos',cur.length],['pendiente','Pendientes',n('pendiente')],['pagado','Pagados',n('pagado')],['aplazado','Aplazados',n('aplazado')]]
+          .map(c=>`<button type="button" class="chip" data-action="stf" data-s="${c[0]}" aria-pressed="${(S.stf||'todos')===c[0]}">${c[1]} <span class="cnt">${c[2]}</span></button>`).join('')+'</div>';
+    } else S.stf='todos';
+    const shown = S.stf==='todos' ? cur : cur.filter(e=>stOf(e)===S.stf);
+    h+= S.eg==='fijos'?secFijos(cur,shown): secVariables(cur,shown);
     return h;
   }
   function stLine(L){
@@ -815,25 +872,31 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     if(!L.length) return '';
     return `<p class="note" style="margin:6px 0 0"><span class="pill st-pagado">Pagado ${money(t.pagado)}</span> <span class="pill st-pendiente">Pendiente ${money(t.pendiente)}</span>${t.aplazado?` <span class="pill st-aplazado">Aplazado ${money(t.aplazado)}</span>`:''}</p>`;
   }
-  function secFijos(list){
-    const demo=isDemo(), F=fixedList(), cur=today();
-    let h='<section><p class="note">Estos son tus gastos fijos de '+esc(monthName(S.month))+'. Los de <b>Por completar</b> aparecen cada mes en $0: tócalos y escribe el monto.</p></section>';
-    const pend=demo?[]:F.filter(f=>(f.from||'0000-00')<=S.month && !S.entries.some(e=>e.fixedId===f.id && e.month===S.month));
-    if(pend.length){
-      h+='<section><p class="grp"><b>Por completar</b><span class="mono">'+pend.length+'</span></p><ul class="rows">'+pend.map(f=>`<li><button type="button" class="row" data-action="fill" data-fid="${esc(f.id)}"><span class="row-main"><b>${esc(f.name)}</b><small>${esc(f.cat)}${f.amount>0?' · Habitual '+money(f.amount):''}</small></span><span class="amt" style="opacity:.55">$0</span></button></li>`).join('')+'</ul></section>';
+  const noneMsg = () => '<p class="empty">No hay gastos '+({pendiente:'pendientes',pagado:'pagados',aplazado:'aplazados'}[S.stf]||'')+' aquí en '+esc(monthName(S.month))+'.</p>';
+  function secFijos(list,shown){
+    const demo=isDemo(), F=fixedList(), all=S.stf==='todos';
+    let h='';
+    const pend=toFill();
+    if(pend.length && all){
+      h+='<section><p class="grp"><b>Por completar</b><span class="mono">'+pend.length+'</span></p><ul class="rows">'+pend.map(f=>`<li><button type="button" class="row" data-action="fill" data-fid="${esc(f.id)}"><span class="row-main"><b>${esc(f.name)}</b><small><i class="dot" style="--c:${colorOf('egreso',f.cat)}"></i>${esc(f.cat)}${f.amount>0?' · Habitual '+money(f.amount):''}</small></span><span class="amt off2">$0</span></button></li>`).join('')+'</ul><p class="note tip">Aparecen cada mes en $0. Toca uno y escribe el monto.</p></section>';
     }
     if(!list.length){
-      h+= !F.length ? '<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses con "+ Gasto fijo".</p></div>' : '';
+      if(!F.length) h+='<div class="start"><p>Aún no tienes gastos fijos. Agrega los que se repiten todos los meses con "+ Gasto fijo".</p></div>';
     } else {
       const habitual=id=>{ const f=F.find(x=>x.id===id); return f?f.amount:null; };
-      h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(counted(list)))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
-      h+=groupedByCat(list,e=>{ const hb=habitual(e.fixedId); return hb>0 && hb!==e.amount ? 'Habitual '+money(hb) : ''; });
+      if(all) h+=`<section><dl class="split" style="--n:2"><div><dt>Este mes</dt><dd>${money(sum(counted(list)))}</dd></div><div><dt>Habitual por mes</dt><dd>${money(sum(F))}</dd></div></dl></section>`;
+      h+= shown.length ? groupedByCat(shown,e=>{ const hb=habitual(e.fixedId); return hb>0 && hb!==e.amount ? 'Habitual '+money(hb) : ''; }) : noneMsg();
+    }
+    const skipped=demo?[]:S.entries.filter(e=>e.month===S.month && e.fixedId && e.deleted && S.fixed.some(f=>f.id===e.fixedId));
+    if(skipped.length && all){
+      h+='<section><p class="grp"><b>No aplican este mes</b><span class="mono">'+skipped.length+'</span></p><ul class="rows">'+skipped.map(e=>{ const f=S.fixed.find(x=>x.id===e.fixedId);
+        return `<li><button type="button" class="row" data-action="unskip" data-id="${esc(e.id)}"><span class="row-main"><b>${esc(f.name)}</b><small>Toca para volver a incluirlo en ${esc(monthName(S.month))}</small></span><span class="amt off2">↺</span></button></li>`; }).join('')+'</ul></section>';
     }
     return h;
   }
-  function secVariables(list){
+  function secVariables(list,shown){
     if(!list.length) return '<p class="empty">Sin gastos variables en '+esc(monthLabel(S.month))+'.<br>Aquí van los gastos que cambian cada mes, como mercado, salidas, farmacia o las cuotas de una deuda (categoría Deuda).</p>';
-    return groupedByCat(list,()=>'');
+    return shown.length ? groupedByCat(shown,()=>'') : noneMsg();
   }
   function safeRender(){ try{ render(); }catch(e){ console.error(e); try{ toast('Error al mostrar el mes: '+(e&&e.message||e)); }catch(_){} } }
   window.addEventListener('error',ev=>{ try{ toast('Error: '+(ev.message||'desconocido')); }catch(_){} });
@@ -845,6 +908,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     $('#view').classList.toggle('nofab',!withFab);
     document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-current', b.dataset.tab===S.tab?'page':'false'));
     const v=$('#view');
+    const vk=S.tab+'|'+S.month+'|'+S.period+'|'+S.eg+'|'+S.stf+'|'+(S.ready?1:0);
+    v.classList.toggle('anim', vk!==render.last); render.last=vk;
     if(!S.ready){ v.innerHTML='<div><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;height:40px"></div><div class="skel"></div><div class="skel" style="width:85%"></div></div>'; return; }
     v.innerHTML = S.tab==='resumen'?viewResumen(): S.tab==='ingresos'?viewIngresos(): viewEgresos();
   }
@@ -860,7 +925,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     root.innerHTML='<div class="sheet-back" id="back"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sTitle">'+html+'</div></div>';
     document.body.classList.add('lock');
     $('#back').addEventListener('click',e=>{ if(e.target.id==='back') closeSheet(); });
-    root.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
+    const sh=root.querySelector('.sheet'); sh.tabIndex=-1; try{ sh.focus({preventScroll:true}); }catch(e){}
     return root;
   }
   function catSelect(id,cats,sel){
@@ -897,6 +962,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     const cats=allCats(kind);
     const names=[...new Set(S.entries.filter(e=>e.kind===kind&&e.name&&!e.deleted).map(e=>e.name))].sort();
     const hasTpl = t && t.fixedId && S.fixed.some(f=>f.id===t.fixedId);
+    const canMove = !!(t && !isI && stOf(t)==='aplazado' && !t.movedTo);
     const title = t ? (t.fixedId?'Gasto fijo de '+monthName(t.month):(isI?'Editar ingreso':'Editar gasto')) : (isI?'Nuevo ingreso':'Nuevo gasto');
     const root=sheetBase(`
       <h3 id="sTitle">${esc(title)}</h3>
@@ -908,6 +974,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
       <div class="field" id="newCatWrap" hidden><label for="fNewCat">Nombre de la nueva categoría</label><input id="fNewCat" type="text" maxlength="40" autocomplete="off"></div>
       ${t&&t.fixedId?'<p class="note">Lo que cambies aquí aplica solo a '+esc(monthName(t.month))+'.</p>':''}
       ${hasTpl?'<button type="button" class="linkbtn" id="fTpl">Editar este gasto fijo para todos los meses</button>':''}
+      ${canMove?`<button type="button" class="btn ghost" id="fMove">Pasar a ${esc(monthName(shiftMonth(t.month,1)))} como pendiente</button>`:''}
+      ${t&&t.movedTo?`<p class="note">Este gasto ya se pasó a ${esc(monthLabel(t.movedTo))}.</p>`:''}
       <p class="err" id="fErr" role="alert"></p>
       <div class="actions"><button type="button" class="btn" id="fSave">Guardar</button>${t?'<button type="button" class="btn danger" id="fDel">Eliminar</button>':''}<button type="button" class="btn ghost" id="fCancel">Cancelar</button></div>`);
     const amt=$('#fAmt'), err=$('#fErr');
@@ -915,6 +983,14 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     amt.addEventListener('input',()=>{ amt.value=fmtInput(amt.value); });
     $('#fCancel').addEventListener('click',closeSheet);
     if(hasTpl) $('#fTpl').addEventListener('click',()=>{ closeSheet(); openFixed(t.fixedId); });
+    if(canMove) $('#fMove').addEventListener('click',async()=>{
+      const next=shiftMonth(t.month,1);
+      try{
+        await store.put(stamp({id:uid('g'),kind:'egreso',month:next,cat:t.cat,name:t.name+' ('+monthName(t.month)+')',amount:t.amount,status:'pendiente',movedFrom:t.month,ts:Date.now()},true));
+        await store.put(Object.assign({},t,{status:'aplazado',movedTo:next}));
+        closeSheet(); render(); toast('Pasado a '+monthName(next)+' como pendiente');
+      }catch(e){ err.textContent='No se pudo pasar al mes siguiente. Intenta de nuevo.'; }
+    });
     $('#fSave').addEventListener('click',async()=>{
       const name=$('#fName').value.trim(), amount=num(amt.value);
       const c=readCat('fCat','fNewCat',cats,err); if(c===null) return;
@@ -979,35 +1055,6 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     (t?amt:$('#xName')).focus();
   }
 
-  /* persona */
-  function openPerson(id){
-    const t = id ? S.persons.find(x=>x.id===id) : null;
-    lastFocus=document.activeElement;
-    sheetBase(`<h3 id="sTitle">${t?'Editar persona':'Nueva persona'}</h3>
-      <div class="field"><label for="pName">Nombre</label><input id="pName" type="text" maxlength="30" autocomplete="off" value="${esc(t?t.name:'')}"></div>
-      <p class="err" id="pErr" role="alert"></p>
-      <div class="actions"><button type="button" class="btn" id="pSave">Guardar</button>${t?'<button type="button" class="btn danger" id="pDel">Eliminar</button>':''}<button type="button" class="btn ghost" id="pCancel">Cancelar</button></div>`);
-    const err=$('#pErr');
-    $('#pCancel').addEventListener('click',closeSheet);
-    $('#pSave').addEventListener('click',async()=>{
-      const name=$('#pName').value.trim();
-      if(!name){ err.textContent='Escribe un nombre.'; return; }
-      try{ await store.put({id:t?t.id:uid('p'),name,ts:t?(t.ts||Date.now()):Date.now()}); closeSheet(); render(); toast(t?'Cambios guardados':'Persona agregada'); }
-      catch(e){ err.textContent='No se pudo guardar. Intenta de nuevo.'; }
-    });
-    const del=$('#pDel');
-    if(del){
-      let armed=false;
-      del.addEventListener('click',async()=>{
-        if(S.entries.some(e=>e.person===t.id && !e.deleted)){ err.textContent='Esta persona tiene ingresos registrados. Elimínalos primero.'; return; }
-        if(!armed){ armed=true; del.textContent='Confirmar eliminación'; return; }
-        try{ await store.del(t.id); closeSheet(); render(); toast('Persona eliminada'); }
-        catch(e){ err.textContent='No se pudo eliminar. Intenta de nuevo.'; }
-      });
-    }
-    $('#pName').focus();
-  }
-
   let toastTimer=null;
   function toast(msg){
     const el=$('#toast'); el.textContent=msg; el.classList.add('on');
@@ -1015,19 +1062,23 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
   }
   async function copyPrev(){
     const prev=shiftMonth(S.month,-1);
-    const src=S.entries.filter(e=>e.month===prev && e.kind==='ingreso' && !e.deleted);
+    const src=S.entries.filter(e=>e.month===prev && e.kind==='ingreso' && !e.deleted && canTouch(e));
+    if(!src.length) return;
     try{
-      for(const e of src){ await store.put(Object.assign({},e,{id:uid('i'),month:S.month,ts:Date.now()})); }
-      toast(src.length+' ingresos traídos');
-    }catch(err){ toast('No se pudieron traer todos los ingresos'); }
+      const recs=src.map(e=>stamp({id:uid('i'),kind:'ingreso',month:S.month,person:e.person,cat:e.cat,name:e.name||'',amount:e.amount,ts:Date.now()},true));
+      await (store.putMany?store.putMany(recs):Promise.all(recs.map(r=>store.put(r))));
+      toast(recs.length===1?'1 ingreso traído':recs.length+' ingresos traídos');
+    }catch(err){ toast('No se pudieron traer los ingresos'); }
+    render();
   }
   /* ---------- eventos ---------- */
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('#sheetRoot').firstChild) closeSheet(); });
   document.addEventListener('click',e=>{
     const el=e.target.closest('[data-action]'); if(!el) return;
     const a=el.dataset.action;
-    if(a==='tab'){ S.tab=el.dataset.tab; render(); window.scrollTo(0,0); }
-    else if(a==='prev'){ S.month=shiftMonth(S.month,-1); safeRender(); ensureAuto(); }
-    else if(a==='next'){ S.month=shiftMonth(S.month,1); safeRender(); ensureAuto(); }
+    if(a==='tab'){ S.tab=el.dataset.tab; S.stf='todos'; render(); window.scrollTo(0,0); }
+    else if(a==='prev'){ S.month=shiftMonth(S.month,-1); safeRender(); }
+    else if(a==='next'){ S.month=shiftMonth(S.month,1); safeRender(); }
     else if(a==='add'){
       if(S.tab==='ingresos') openEntry('ingreso',null);
       else if(S.eg==='fijos') openFixed(null);
@@ -1035,19 +1086,23 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
     }
     else if(a==='addp'){ openEntry('ingreso',null,el.dataset.person); }
     else if(a==='edit'){ const x=S.entries.find(z=>z.id===el.dataset.id); if(x) openEntry(x.kind,x.id); }
-    else if(a==='editp'){ openPerson(el.dataset.id); }
     else if(a==='newperson'){ toast('Los usuarios son fijos: Richard y Bárbara'); }
     else if(a==='other'){ toast('Solo '+((S.persons.find(p=>p.id===(S.entries.find(z=>z.id===el.dataset.id)||{}).person)||{}).name||'su dueño')+' puede cambiar este ingreso'); }
-    else if(a==='suggest'){ openFixed(null,{name:el.dataset.name,cat:'Vivienda y cuentas'}); }
-    else if(a==='eg'){ S.eg=el.dataset.k; render(); }
+    else if(a==='eg'){ S.eg=el.dataset.k; S.stf='todos'; render(); }
     else if(a==='demo'){ toast('Son datos de ejemplo'); }
     else if(a==='period'){ S.period=el.dataset.p; render(); }
     else if(a==='logout'){ window.__logout(); }
     else if(a==='st'){ const x=S.entries.find(z=>z.id===el.dataset.id); if(x){ const n=ST[(ST.indexOf(stOf(x))+1)%3]; store.put(Object.assign({},x,{status:n})).catch(()=>toast('No se pudo cambiar el estado')); toast(ST_LABEL[n]); } }
     else if(a==='manage'){ openManage(); }
+    else if(a==='pick'){ openPicker(); }
+    else if(a==='cat'){ openCat(el.dataset.kind,el.dataset.cat); }
+    else if(a==='goto'){ S.month=el.dataset.m; S.period='mes'; safeRender(); window.scrollTo(0,0); }
+    else if(a==='stf'){ S.stf=el.dataset.s; render(); }
+    else if(a==='gofijos'){ S.tab='egresos'; S.eg='fijos'; S.stf='todos'; render(); window.scrollTo(0,0); }
+    else if(a==='gopend'){ S.tab='egresos'; S.stf='pendiente'; render(); window.scrollTo(0,0); }
+    else if(a==='export'){ exportCsv(); }
+    else if(a==='unskip'){ store.del(el.dataset.id).then(()=>{ render(); toast('Vuelve a aparecer por completar'); }).catch(()=>toast('No se pudo restaurar')); }
     else if(a==='fill'){ openFill(el.dataset.fid); }
-    else if(a==='repfx'){ el.disabled=true; repeatFixed(); }
-    else if(a==='repno'){ S.skipFx=S.month; render(); }
     else if(a==='copy'){ el.disabled=true; copyPrev(); }
   });
 
